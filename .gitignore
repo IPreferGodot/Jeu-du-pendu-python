@@ -1,3 +1,11 @@
+# data
+raw_data/
+
+# other
+draft.py
+
+# ---------------------------------------- Template ----------------------------------------------
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

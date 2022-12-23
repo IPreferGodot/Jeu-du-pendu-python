@@ -1,4 +1,5 @@
 import pygame, sys, os, time
+from word_chooser import choose_word
 from pygame.locals import QUIT
 
 def resource_path(relative_path):
@@ -47,6 +48,7 @@ for i in range(4):
 
 test = 0
 while True:
+    print(choose_word(1000))
     DISPLAYSURF.fill(BACKGROUND_COLOR)
     test += 1
     test %= 4

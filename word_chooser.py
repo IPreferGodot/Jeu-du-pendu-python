@@ -2,9 +2,9 @@ DEBUG = False
 
 print("Importing...")
 import pandas
+from path_rectifier import *
 
-
-words: pandas.DataFrame = pandas.read_csv(r"assets/data/words.csv")
+words: pandas.DataFrame = pandas.read_csv(resource_path(r"assets/data/words.csv"))
 print("Loaded words.")
 
 DOWN_RANGE_MAX: int = len(words) - 500 # Valeur maximale du bas de la plage aléatoire

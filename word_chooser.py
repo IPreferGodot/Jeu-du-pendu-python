@@ -22,9 +22,9 @@ if HAS_LAROUSSE:
     import multiprocessing, multiprocessing.connection # (import connection just for type hint)
 
 
-print("Loading words...")
+print("Loading words...", end="")
 words: pandas.DataFrame = pandas.read_csv(resource_path(r"assets/data/words.csv"))
-print("Loaded words.")
+print(" ok")
 
 DOWN_RANGE_MAX: int = len(words) - 500 # Valeur maximale du bas de la plage aléatoire
 UP_RANGE_MIN: int = 500  # Valeur minimale du bas de la plage aléatoire
@@ -79,8 +79,6 @@ def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
     attempts = 0
     while attempts < max_attempts:
         word = words.iloc[down_range:up_range].sample(1).iloc[0]["word"]
-
-        print("attempt")
 
         if HAS_LAROUSSE:
             definitions = larousse.get_definitions(word)
@@ -142,7 +140,7 @@ def get_word_async(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) ->
 
 def terminate() -> None:
     if not process:
-        print("[W] `terminate()` is unnecessary as no process has been created.")
+        print("`terminate()` is unnecessary as no process has been created.")
         return
 
     connection_parent.send("close")
@@ -162,20 +160,22 @@ def terminate() -> None:
 def init_process() -> None:
     """Call this to create the new process. This prevent the new process to create a process wich would create a process wich would etc..."""
 
-
-
     global process, connection_parent, _connection_child
 
-    print("initializing process")
-
     if not HAS_LAROUSSE:
-        return Exception("Starting a process is not necessary : larousse-api is not installed.")
+        print("Starting a process is not necessary : larousse-api is not installed.")
+        return
     if process:
-        return Exception("Process was already created.")
+        print("[E] Process was already created.")
+        return
+
+    print("Initializing process...", end="")
 
     connection_parent, _connection_child = multiprocessing.Pipe(duplex=True)
     process = multiprocessing.Process(target=process_loop, args=(_connection_child,), )
     process.start()
+
+    print(" ok")
 
 
 if True and __name__ == "__main__":

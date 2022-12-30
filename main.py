@@ -1,17 +1,18 @@
 from path_rectifier import *
-import pygame, sys, time, word_chooser
+import pygame, sys, word_chooser
 from word_chooser import get_word_async as get_word
 from pygame.locals import QUIT
 
 if __name__ == "__main__":
-    word_chooser.multiprocessing.freeze_support()
-    print("initializing pygame...")
+    if word_chooser.HAS_LAROUSSE:
+        word_chooser.multiprocessing.freeze_support()
+    print("Initializing pygame...")
     pygame.init()
-    print("initializing word_chooser...")
+    print("Initializing word_chooser...")
     word_chooser.init_process()
 
     # ----------------- Constants ------------------
-    FRAME_TIME = 1/2
+    FRAME_TIME = 1/2 *1000 # In ms
     BACKGROUND_COLOR = 70,  70,  70
 
     DISPLAYSURF = pygame.display.set_mode((400, 400))
@@ -57,18 +58,19 @@ if __name__ == "__main__":
     pygame.mixer.music.set_volume(0.5)
 
     test = 0
-    next_frame = time.time() - 1
+    next_frame = pygame.time.get_ticks() - 1
 
+    print("\n======================= Main loop start =======================\n")
     while True:
-        if time.time() > next_frame:
-            next_frame = time.time() + FRAME_TIME
+        if pygame.time.get_ticks() > next_frame:
+            next_frame = pygame.time.get_ticks() + FRAME_TIME
             DISPLAYSURF.fill(BACKGROUND_COLOR)
             test += 1
             test %= 4
             DISPLAYSURF.blit(hangman_images[test], hangman_images[0].get_rect())
             if test == 1:
                 word_chooser.get_word_async(1000)
-                print("prechoosed_words lenght :", len(prechoosed_words), "| word :", repr(prechoosed_words.pop()) if len(prechoosed_words)!=0 else "EMPTY")
+                print("prechoosed_words lenght :", len(prechoosed_words), "│ word :", repr(prechoosed_words.pop()) if len(prechoosed_words)!=0 else "EMPTY")
 
         # if word_chooser.word_queue:
         #     while not word_chooser.word_queue.empty():

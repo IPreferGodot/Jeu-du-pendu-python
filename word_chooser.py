@@ -1,5 +1,5 @@
 DEBUG = False
-
+SUB_PROCESS_PREFIX = " -sub- "
 
 print("Importing...")
 import pandas
@@ -58,6 +58,9 @@ class WordRequest():
         self.difficulty: int = difficulty
         self.max_attempts: int = max_attempts
 
+    def __str__(self) -> str:
+        return f"WordRequest ({self.difficulty})"
+
 
 def cap(value: int, minimum: int, maximum: int) -> int:
     """Cappe la valeur entre les bornes `minimum` et `maximum`"""
@@ -95,16 +98,32 @@ def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
 def process_loop(connection: "multiprocessing.connection.Connection") -> None:
     """Start the subprocess infinite loop."""
 
-    print("i am here")
-    while True:
-        print("Loop start")
-        connection.poll(None) # Wait for a message
-        print("message !")
-        message = connection.recv()
+    # On remplace print() pour mieux le différencier avec celui du processus parent
+    global print
+    default_print = print
+    def print(*args, **kwargs):
+        default_print(SUB_PROCESS_PREFIX, end="")
+        default_print(*args, **kwargs)
 
-        if message == "close":
-            return
-        elif isinstance(message, WordRequest):
+    messages: list[str|WordRequest] = []
+
+    print("Started main loop")
+    while True:
+        connection.poll(None) # Wait for a message
+        while connection.poll() : # Loop in case multiple messages were send.
+            message = connection.recv()
+            if message == "close":
+                print("Closing")
+                return
+            elif message == "clear":
+                messages.clear()
+            else:
+                messages.append(message)
+
+        if len(messages) > 3:
+            print("Many unsatisfied messages :", len(messages))
+
+        if isinstance(message, WordRequest):
             connection.send(get_word(message.difficulty, message.max_attempts))
         else:
             print("[W] Unknow message passed trough pipe :", message)
@@ -126,8 +145,16 @@ def terminate() -> None:
         print("[W] `terminate()` is unnecessary as no process has been created.")
         return
 
-    process.terminate()
-    process.join()
+    connection_parent.send("close")
+    for _ in range(30):
+        process.join(1)
+        if not process.is_alive():
+            break
+    else:
+        print("Forcing the sub process to close !")
+        process.terminate()
+        process.join()
+
     connection_parent.close()
     _connection_child.close()
 
@@ -152,6 +179,7 @@ def init_process() -> None:
 
 
 if True and __name__ == "__main__":
+    pass
     # for i in range(-1000, len(words) + 1001, 1000):
     #     print(i, ":", get_word(i))
 
@@ -164,5 +192,5 @@ if True and __name__ == "__main__":
     # print(word_queue.get())
     # word_queue.close()
 
-    if HAS_LAROUSSE:
-        init_process()
+    # if HAS_LAROUSSE:
+    #     init_process()

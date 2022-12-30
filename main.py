@@ -4,6 +4,7 @@ from word_chooser import get_word_async as get_word
 from pygame.locals import QUIT
 
 if __name__ == "__main__":
+    word_chooser.multiprocessing.freeze_support()
     print("initializing pygame...")
     pygame.init()
     print("initializing word_chooser...")
@@ -67,7 +68,7 @@ if __name__ == "__main__":
             DISPLAYSURF.blit(hangman_images[test], hangman_images[0].get_rect())
             if test == 1:
                 word_chooser.get_word_async(1000)
-                print("prechoosed_words lenght :", len(prechoosed_words), "| word :", prechoosed_words.pop() if len(prechoosed_words)!=0 else "EMPTY")
+                print("prechoosed_words lenght :", len(prechoosed_words), "| word :", repr(prechoosed_words.pop()) if len(prechoosed_words)!=0 else "EMPTY")
 
         # if word_chooser.word_queue:
         #     while not word_chooser.word_queue.empty():
@@ -81,8 +82,8 @@ if __name__ == "__main__":
         for event in pygame.event.get():
             what = event.type
             if what == QUIT:
-                word_chooser.terminate()
                 pygame.quit()
+                word_chooser.terminate()
                 sys.exit()
             elif what == MUSIC_END:
                 pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))

@@ -1,93 +1,120 @@
-from path_rectifier import *
-import pygame, sys, word_chooser
-from word_chooser import get_word_async as get_word
-from pygame.locals import QUIT
 
-if __name__ == "__main__":
-    if word_chooser.HAS_LAROUSSE:
-        word_chooser.multiprocessing.freeze_support()
-    print("Initializing pygame...")
-    pygame.init()
-    print("Initializing word_chooser...")
-    word_chooser.init_process()
+import random
+import pygame
 
-    # ----------------- Constants ------------------
-    FRAME_TIME = 1/2 *1000 # In ms
-    BACKGROUND_COLOR = 70,  70,  70
+pygame.init()
 
-    DISPLAYSURF = pygame.display.set_mode((400, 400))
-    pygame.display.set_caption("Hangman")
+window_size = (1920, 1080)
+screen = pygame.display.set_mode(window_size)
 
-    # ------------------- Events -------------------
-    MUSIC_END = pygame.USEREVENT + 1
+# le titre 
+pygame.display.set_caption("Hangman")
 
-    # ----------------- Variables ------------------
-    prechoosed_words: list[str] = []
+# type d'écriture et la taille
+font = pygame.font.Font(None, 144)
 
-    # --------------- XenozK Version ---------------
+# pas perdre de temps avec certaine couleur 
+black = (0, 0, 0)
+white = (255, 255, 255)
 
-    # la taille de la page et le titre
-    #window_size = (400, 400)
-    #window_title = "Hangman"
-    #screen = pygame.display.set_mode(window_size)
-    #pygame.display.set_caption(window_title)
+# toutes les images des hungmans de base c'etait autre chose mais ça me bloquais trop pour rien donc j'ai juste fait cela
+hangman_images = [
+    pygame.image.load("hangman0.png"),
+    pygame.image.load("hangman1.png"),
+    pygame.image.load("hangman2.png"),
+    pygame.image.load("hangman3.png"),
+    pygame.image.load("hangman4.png"),
+    pygame.image.load("hangman5.png"),
+    pygame.image.load("hangman6.png"),
+]
+#Pour ça oublie c'etait juste pour faire ce que t'avais fait mais t'as mieux fait et plus complexe
+with open('text.txt', 'r') as f:
+    words = f.read().split()
 
-    # couleur du background
-    bg_color = (255, 255, 255)
+word = random.choice(words)
 
-    # couleur du text
-    font = pygame.font.Font(None, 32)
-    text_color = (0, 0, 0)
+# nombre de guesses incorrect mis par defaut à 0
+incorrect_guesses = 0
 
+# liste des lettres correctement deviné
+correct_letters = []
 
-    hangman_largeur = 200
-    hangman_longeur = 300
+# liste des lettres déja essayer 
+already_guessed = []
 
-    #prend les images
-    hangman_images = []
-    for i in range(4):
-        image = pygame.image.load(resource_path(f"assets/img/sprites/hangman/hangman{i}.png"))
-        image = pygame.transform.scale(image, (hangman_largeur, hangman_longeur))
-        hangman_images.append(image)
+def draw_hangman():
+    """aplique les images par rapport au nombres d'erreurs."""
+    screen.blit(pygame.transform.scale(hangman_images[incorrect_guesses], (800, 800)), (150, 300))
 
+def draw_word():
+    """dessine le mot a deviné sur l'écran, avec les lettres correct montré et incorrect caché en _."""
+    x = 960
+    y = 240
+    for letter in word:
+        if letter in correct_letters:
+            # met la lettre si elle a été corréctement deviné
+            text = font.render(letter, True, black)
+            screen.blit(text, (x, y))
+            x += 144
+        else:
+            # reddésine un _ si la lettre n'as pas été deviné
+            text = font.render("_", True, black)
+            screen.blit(text, (x, y))
+            x += 144
 
-    pygame.mixer.music.load(resource_path(r"assets/music/Level 1.ogg"))
-    pygame.mixer.music.set_endevent(MUSIC_END)
-    pygame.mixer.music.play()
-    pygame.mixer.music.queue(resource_path(r"assets/music/Transition 1-2.ogg"))
-    pygame.mixer.music.set_volume(0.5)
+def handle_input(guess):
+    """gère les entrées du joueur et met a jour l'état du jeu en fonction de la touche."""
+    global incorrect_guesses
+    if guess in word:
+        # met la lettre correcte  dans la liste correct_letters
+        correct_letters.append(guess)
+    else:
+        # ajoute 1 au nombre incorrecte et met la lettre dans la liste des deja deviné (mais faut)
+        incorrect_guesses += 1
+        already_guessed.append(guess)
 
-    test = 0
-    next_frame = pygame.time.get_ticks() - 1
-
-    print("\n======================= Main loop start =======================\n")
-    while True:
-        if pygame.time.get_ticks() > next_frame:
-            next_frame = pygame.time.get_ticks() + FRAME_TIME
-            DISPLAYSURF.fill(BACKGROUND_COLOR)
-            test += 1
-            test %= 4
-            DISPLAYSURF.blit(hangman_images[test], hangman_images[0].get_rect())
-            if test == 1:
-                word_chooser.get_word_async(1000)
-                print("prechoosed_words lenght :", len(prechoosed_words), "│ word :", repr(prechoosed_words.pop()) if len(prechoosed_words)!=0 else "EMPTY")
-
-        # if word_chooser.word_queue:
-        #     while not word_chooser.word_queue.empty():
-        #         prechoosed_words.append(word_chooser.word_queue.get())
-
-        if word_chooser.connection_parent:
-            while word_chooser.connection_parent.poll():
-                prechoosed_words.append(word_chooser.connection_parent.recv())
-
-
+def main():
+    """Loop principal"""
+    running = True
+    while running:
         for event in pygame.event.get():
-            what = event.type
-            if what == QUIT:
-                pygame.quit()
-                word_chooser.terminate()
-                sys.exit()
-            elif what == MUSIC_END:
-                pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                # prend la touche.
+                key = event.unicode
+                # pour etre sur que la touche soit une lettre
+                if key.isalpha():
+                    # met la touche en minuscule
+                    key = key.lower()
+                    # etre sur que la lettre n'as pas eté deja utiliser 
+                    if key not in already_guessed:
+                        handle_input(key)
+                        # Check si le joueur a gagné ou perdu
+                        if set(word) == set(correct_letters):
+                            # met le message et quitte le jeu après un temps apparti si le joueur a gagné
+                            text = font.render("Gagné!", True, black)
+                            screen.blit(text, (960, 540))
+                            pygame.display.flip()
+                            pygame.time.wait(3000)
+                            running = False
+                        elif incorrect_guesses == 7:
+                            #meme chose mais si il a perdu
+                            text = font.render("Perdu!", True, black)
+                            screen.blit(text, (960, 540))
+                            pygame.display.flip()
+                            pygame.time.wait(3000)
+                            running = False
+                            #montre le mots
+                            #correct_letters = list(word)
+        # clear l'écran
+        screen.fill((248,248,255))
+        # met les images et le mot a étre deviner
+        draw_hangman()
+        draw_word()
+        # Update l'écran
+        pygame.display.flip()
 
-        pygame.display.update()
+main()
+
+pygame.quit()

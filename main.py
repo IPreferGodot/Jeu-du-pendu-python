@@ -2,6 +2,7 @@ from path_rectifier import *
 import pygame, sys, word_chooser
 from word_chooser import get_word_async as get_word
 from pygame.locals import QUIT, KEYDOWN, USEREVENT
+from math import cos
 
 if __name__ == "__main__":
     if word_chooser.HAS_LAROUSSE:
@@ -17,7 +18,7 @@ if __name__ == "__main__":
 
     # ----------------- Constants ------------------
     # Pygame
-    FRAME_TIME = 1/2 *1000 # In ms
+    FRAME_TIME = 1/60 *1000 # In ms
     BACKGROUND_COLOR = (248,248,255)
     # SIZE REDUCED
     # WINDOW_SIZE = (1920, 1080)
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     print(pygame.display.list_modes())
     print(pygame.display.Info())
     SCREEN = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
-    FONT = pygame.font.Font(None, 144)
+    FONT = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 100)
     HANGMAN_IMAGES = [
         pygame.transform.scale(
             pygame.image.load(resource_path(f"assets/img/sprites/hangman/hangman{idx}.png")),
@@ -72,14 +73,14 @@ if __name__ == "__main__":
             if letter in correct_letters:
                 # Met la lettre si elle a été correctement devinée
                 text = FONT.render(letter, True, BLACK)
-                SCREEN.blit(text, (x, y))
+                SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*2)/800)*10))
                 # SIZE REDUCED
                 # x += 144
                 x += 72
             else:
                 # Redéssine un "_" si la lettre n'as pas été devinée
                 text = FONT.render("_", True, BLACK)
-                SCREEN.blit(text, (x, y))
+                SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
                 # SIZE REDUCED
                 # x += 144
                 x += 72

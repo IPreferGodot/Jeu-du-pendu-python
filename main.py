@@ -50,8 +50,9 @@ if __name__ == "__main__":
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
 
-    # ----------------- Variables ------------------
-    prechoosed_words: list[str] = []
+# pas perdre de temps avec certaine couleur
+black = (0, 0, 0)
+white = (255, 255, 255)
 
     word = "nonchoisi"
     incorrect_guesses = 0 # nombre de guesses incorrect mis par defaut à 0
@@ -96,6 +97,8 @@ if __name__ == "__main__":
             incorrect_guesses += 1
             already_guessed.append(guess)
 
+# liste des lettres déja essayer
+already_guessed = []
 
     def main() -> None:
         """Fusion des versions de Xenozk et IPreferGodot."""
@@ -202,6 +205,16 @@ if __name__ == "__main__":
             # Update l'écran
             pygame.display.flip()
 
+def handle_input(guess):
+    """gère les entrées du joueur et met a jour l'état du jeu en fonction de la touche."""
+    global incorrect_guesses
+    if guess in word:
+        # met la lettre correcte  dans la liste correct_letters
+        correct_letters.append(guess)
+    else:
+        # ajoute 1 au nombre incorrecte et met la lettre dans la liste des deja deviné (mais faut)
+        incorrect_guesses += 1
+        already_guessed.append(guess)
 
     def main_old() -> None:
         """

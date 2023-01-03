@@ -158,13 +158,13 @@ if __name__ == "__main__":
 
         if word_chooser.HAS_LAROUSSE:
             # Prend le mot trouvé à l'avance
-            if current_difficulty in prechoosed_words:
+            if prechoosed_words.get(current_difficulty, None): # Vérifie s'il y a un mot préchoisit (ni None ni liste vide)
                 set_word(prechoosed_words[current_difficulty].pop())
-                state = STATE_PLAYING
             else:
                 word_chooser.get_word_async(current_difficulty)
                 state = STATE_WAITING_WORD
                 draw_waiting_for_word()
+                return # Empêche state = STATE_PLAYING, ainsi que d'appeler les mots par prévoyances, qui seraient réappelés sinon au prochain appel
 
             # Demande les mots en cas de défaite ou de victoire à l'avance
             win_difficulty, loose_difficulty = current_difficulty + DIFFICULTY_CHANGE, current_difficulty - DIFFICULTY_CHANGE
@@ -174,7 +174,8 @@ if __name__ == "__main__":
                 word_chooser.get_word_async(loose_difficulty)
         else:
             set_word(word_chooser.get_word(current_difficulty))
-            state = STATE_PLAYING
+
+        state = STATE_PLAYING
 
 
     def main() -> None:
@@ -218,7 +219,7 @@ if __name__ == "__main__":
                                 SCREEN.blit(text, (960, 540))
                                 pygame.display.flip()
                                 state = STATE_TRANSITION
-                                pygame.time.wait(3000)
+                                # pygame.time.wait(3000)
                                 new_game(1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
                             elif errors == len(HANGMAN_IMAGES):
@@ -227,7 +228,7 @@ if __name__ == "__main__":
                                 SCREEN.blit(text, (960, 540))
                                 pygame.display.flip()
                                 state = STATE_TRANSITION
-                                pygame.time.wait(3000)
+                                # pygame.time.wait(3000)
                                 new_game(-1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
                                 #montre le mots
@@ -240,7 +241,7 @@ if __name__ == "__main__":
 
             # Mise à jour de la fenêtre
             if pygame.time.get_ticks() >= next_frame:
-                if pygame.time.get_ticks() - next_frame:
+                if pygame.time.get_ticks() - next_frame > FRAME_TIME:
                     print("latency :", pygame.time.get_ticks() - next_frame)
                 next_frame = pygame.time.get_ticks() + FRAME_TIME
 
@@ -254,7 +255,7 @@ if __name__ == "__main__":
 
                 # Update l'écran
 
-
+    '''
     def main_Xenozk() -> None:
         """Loop principale (Version de Xenozk)"""
         running = True
@@ -347,5 +348,6 @@ if __name__ == "__main__":
                     sys.exit()
                 elif what == MUSIC_END:
                     pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
+    '''
 
     main()

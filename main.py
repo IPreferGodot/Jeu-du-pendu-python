@@ -1,6 +1,5 @@
 from path_rectifier import *
 import pygame, sys, word_chooser
-from word_chooser import get_word_async as get_word
 from pygame.locals import QUIT, KEYDOWN, USEREVENT
 from math import cos
 
@@ -18,7 +17,7 @@ if __name__ == "__main__":
 
     # ----------------- Constants ------------------
     # Pygame
-    FRAME_TIME = 1/60 *1000 # In ms
+    FRAME_TIME = int(1/60 * 1000) # In ms
     BACKGROUND_COLOR = (248,248,255)
     # SIZE REDUCED
     # WINDOW_SIZE = (1920, 1080)
@@ -29,41 +28,65 @@ if __name__ == "__main__":
     # SIZE REDUCED
     # HANGMAN_POS = (150, 300)
     HANGMAN_POS = (75, 150)
-    print(pygame.display.get_wm_info())
-    print(pygame.display.get_desktop_sizes())
-    print(pygame.display.list_modes())
-    print(pygame.display.Info())
     SCREEN = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
     FONT = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 100)
-    HANGMAN_IMAGES = [
+    FONT_SMALL = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 20)
+    MAX_ERRORS: int = 7
+    HANGMAN_IMAGES: list[pygame.Surface] = [
         pygame.transform.scale(
             pygame.image.load(resource_path(f"assets/img/sprites/hangman/hangman{idx}.png")),
             HANGMAN_SIZE
         )
-        for idx in range(4)
+        for idx in range(MAX_ERRORS)
     ]
 
     # colors
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
 
+    # game
+    DIFFICULTY_CHANGE = 1000
+    STATE_PLAYING = 1
+    STATE_WAITING_WORD = 2
+    STATE_TRANSITION = 3
 
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
 
     # ----------------- Variables ------------------
-    prechoosed_words: list[str] = []
+    prechoosed_words: dict[int, list[word_chooser.Word]] = {} # Stocke les mots obtenus en arrière plan
+    word_history: list[word_chooser.Word] = [] # Garde une trace des mots déjà montrés au joueur, par exemple au cas où il veuille en revoir la définition
+    state: int = STATE_WAITING_WORD
+
+    current_difficulty: int = 0
 
     word = "nonchoisi"
-    incorrect_guesses = 0 # nombre de guesses incorrect mis par defaut à 0
+    definitions = ["Installez larousse-api pour avoir accès aux définitions des mots."]
+    errors = 0 # nombre de lettres incorrectes (mis par defaut à 0)
     correct_letters = [] # liste des lettres correctement devinée
     already_guessed = [] # liste des lettres déjà essayées
 
 
     # ----------------- Functions ------------------
+    def vec_minus(a: tuple, b: tuple) -> tuple:
+        return a[0]-b[0], a[1]-b[1]
+
+    def add_prechoosed_word(word: word_chooser.Word) -> None:
+        global state
+
+        if word.difficulty in prechoosed_words:
+            prechoosed_words[word.difficulty].append(word)
+        else:
+            prechoosed_words[word.difficulty] = [word]
+
+        if state == STATE_WAITING_WORD and word.difficulty == current_difficulty:
+            new_game()
+
+
     def draw_hangman() -> None:
         """Aplique les images par rapport au nombre d'erreurs."""
-        SCREEN.blit(HANGMAN_IMAGES[incorrect_guesses], HANGMAN_POS)
+        SCREEN.blit(HANGMAN_IMAGES[errors], HANGMAN_POS)
+
 
     # SIZE REDUCED
     # def draw_word(x: int = 960,  y: int = 240) -> None:
@@ -73,7 +96,7 @@ if __name__ == "__main__":
             if letter in correct_letters:
                 # Met la lettre si elle a été correctement devinée
                 text = FONT.render(letter, True, BLACK)
-                SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*2)/800)*10))
+                SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
                 # SIZE REDUCED
                 # x += 144
                 x += 72
@@ -86,20 +109,80 @@ if __name__ == "__main__":
                 x += 72
 
 
+    def draw_waiting_for_word() -> None:
+        SCREEN.fill(WHITE)
+        msg = FONT_SMALL.render("En attente d'un mot...", True, BLACK)
+        # SCREEN.blit(msg, vec_minus(SCREEN.get_rect().center, msg.get_rect().center))
+        SCREEN.blit(msg, msg.get_rect(center=SCREEN.get_rect().center).topleft)
+        pygame.display.flip()
+
+
     def handle_input(guess: str) -> None:
         """Gère les entrées du joueur et met a jour l'état du jeu en fonction de la touche."""
-        global incorrect_guesses
+        global errors
         if guess in word:
             # Met la lettre correcte  dans la liste correct_letters
             correct_letters.append(guess)
         else:
             # Ajoute 1 au nombre de lettres incorrectes et met la lettre dans la liste des déjà devinées (mais fausses)
-            incorrect_guesses += 1
+            errors += 1
             already_guessed.append(guess)
+
+
+    def set_word(new_word: word_chooser.Word) -> None:
+        """Change les variables globales lorsqu'un nouveau mot est choisi."""
+        global word, definitions
+
+        word_history.append(new_word)
+
+        word = new_word.word
+        definitions = new_word.definitions
+
+    def new_game(has_won: int = 0) -> None:
+        """Start a new round.
+
+        `has_won` :
+            -1 : loosed
+             0 : was not a round end
+             1 : won"""
+
+        print("Starting a new round with has_won =", has_won)
+
+        global errors, current_difficulty, state
+
+        current_difficulty += DIFFICULTY_CHANGE * has_won
+
+        errors = 0
+        already_guessed.clear()
+        correct_letters.clear()
+
+        if word_chooser.HAS_LAROUSSE:
+            # Prend le mot trouvé à l'avance
+            if current_difficulty in prechoosed_words:
+                set_word(prechoosed_words[current_difficulty].pop())
+                state = STATE_PLAYING
+            else:
+                word_chooser.get_word_async(current_difficulty)
+                state = STATE_WAITING_WORD
+                draw_waiting_for_word()
+
+            # Demande les mots en cas de défaite ou de victoire à l'avance
+            win_difficulty, loose_difficulty = current_difficulty + DIFFICULTY_CHANGE, current_difficulty - DIFFICULTY_CHANGE
+            if win_difficulty not in prechoosed_words:
+                word_chooser.get_word_async(win_difficulty)
+            if loose_difficulty not in prechoosed_words:
+                word_chooser.get_word_async(loose_difficulty)
+        else:
+            set_word(word_chooser.get_word(current_difficulty))
+            state = STATE_PLAYING
 
 
     def main() -> None:
         """Fusion des versions de Xenozk et IPreferGodot."""
+
+        global state
+
+        new_game()
 
         # Brouillon musique adaptative
         pygame.mixer.music.load(resource_path(r"assets/music/Level 1.ogg"))
@@ -110,6 +193,7 @@ if __name__ == "__main__":
 
         next_frame: int = pygame.time.get_ticks() - 1
 
+        print("\n======================= Main loop start =======================\n")
         while True:
             for event in pygame.event.get():
                 what = event.type
@@ -119,7 +203,7 @@ if __name__ == "__main__":
                     sys.exit()
                 elif what == MUSIC_END:
                     pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
-                elif what == KEYDOWN:
+                elif state == STATE_PLAYING and what == KEYDOWN:
                     key = event.unicode # Prend la touche.
 
                     if key.isalpha(): # pour etre sur que la touche soit une lettre
@@ -133,33 +217,43 @@ if __name__ == "__main__":
                                 text = FONT.render("Gagné !", True, BLACK)
                                 SCREEN.blit(text, (960, 540))
                                 pygame.display.flip()
+                                state = STATE_TRANSITION
                                 pygame.time.wait(3000)
-                                pygame.event.post(pygame.event.Event(QUIT))
-                            elif incorrect_guesses == len(HANGMAN_IMAGES):
+                                new_game(1)
+                                # pygame.event.post(pygame.event.Event(QUIT))
+                            elif errors == len(HANGMAN_IMAGES):
                                 # même chose mais s'l a perdu
                                 text = FONT.render("Perdu...", True, BLACK)
                                 SCREEN.blit(text, (960, 540))
                                 pygame.display.flip()
+                                state = STATE_TRANSITION
                                 pygame.time.wait(3000)
-                                pygame.event.post(pygame.event.Event(QUIT))
+                                new_game(-1)
+                                # pygame.event.post(pygame.event.Event(QUIT))
                                 #montre le mots
                                 #correct_letters = list(word)
 
-            # On vide les mots préchoisis
+            # On vide les mots préchoisis si le multiprocessing est activé
             if word_chooser.connection_parent:
                 while word_chooser.connection_parent.poll():
-                    prechoosed_words.append(word_chooser.connection_parent.recv())
+                    add_prechoosed_word(word_chooser.connection_parent.recv())
 
             # Mise à jour de la fenêtre
-            if pygame.time.get_ticks() > next_frame:
+            if pygame.time.get_ticks() >= next_frame:
+                if pygame.time.get_ticks() - next_frame:
+                    print("latency :", pygame.time.get_ticks() - next_frame)
                 next_frame = pygame.time.get_ticks() + FRAME_TIME
-                # clear l'écran
-                SCREEN.fill(BACKGROUND_COLOR)
-                # met les images et le mot à deviner
-                draw_hangman()
-                draw_word()
+
+                if state == STATE_PLAYING:
+                    # clear l'écran
+                    SCREEN.fill(BACKGROUND_COLOR)
+                    # met les images et le mot à deviner
+                    draw_hangman()
+                    draw_word()
+                    pygame.display.flip()
+
                 # Update l'écran
-                pygame.display.flip()
+
 
     def main_Xenozk() -> None:
         """Loop principale (Version de Xenozk)"""

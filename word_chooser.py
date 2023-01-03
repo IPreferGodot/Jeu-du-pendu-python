@@ -40,7 +40,7 @@ class Word():
         self.difficulty: int = difficulty
 
         self.has_definitions: bool = False
-        self.definitions: list[str] = ["This word has no definition."]
+        self.definitions: list[str] = ["Installez larousse-api pour avoir accès aux définitions des mots."]
 
         if definitions:
             self.has_definitions = True
@@ -121,10 +121,14 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
         if len(messages) > 3:
             print("Many unsatisfied messages :", len(messages))
 
-        if isinstance(message, WordRequest):
-            connection.send(get_word(message.difficulty, message.max_attempts))
-        else:
-            print("[W] Unknow message passed trough pipe :", message)
+        while messages:
+            message = messages.pop(0)
+            if isinstance(message, WordRequest):
+                word = get_word(message.difficulty, message.max_attempts)
+                connection.send(word)
+                print("A word was found :", repr(word))
+            else:
+                print("[W] Unknow message passed trough pipe :", message)
 
 
 def get_word_async(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:

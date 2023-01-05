@@ -168,9 +168,9 @@ if __name__ == "__main__":
 
             # Demande les mots en cas de défaite ou de victoire à l'avance
             win_difficulty, loose_difficulty = current_difficulty + DIFFICULTY_CHANGE, current_difficulty - DIFFICULTY_CHANGE
-            if win_difficulty not in prechoosed_words:
+            if not prechoosed_words.get(win_difficulty, None):
                 word_chooser.get_word_async(win_difficulty)
-            if loose_difficulty not in prechoosed_words:
+            if not prechoosed_words.get(loose_difficulty, None):
                 word_chooser.get_word_async(loose_difficulty)
         else:
             set_word(word_chooser.get_word(current_difficulty))

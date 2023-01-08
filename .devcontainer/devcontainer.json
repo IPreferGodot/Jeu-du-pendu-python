@@ -10,12 +10,12 @@
 		"cstrap.flask-snippets"
 	],
 
-	"settings": {
-		"terminal.integrated.shell.linux": "/bin/shell"
-	},
-
 	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	"features": {
+		"ghcr.io/devcontainers/features/desktop-lite:1": {
+			"password": "youshallpass"
+		}
+	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],

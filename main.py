@@ -3,12 +3,7 @@ import pygame, sys, word_chooser, os
 from pygame.locals import QUIT, KEYDOWN, USEREVENT
 from math import cos
 
-print(os.environ)
-try:
-    os.environ["DISPLAY"]
-except:
-    os.environ["SDL_VIDEODRIVER"] = "dummy"
-    print("[E] DUMMY VIDEO DRIVER !!!")
+IN_CODESPACE = os.environ.get("CODESPACES", False)
 
 if __name__ == "__main__":
     if word_chooser.HAS_LAROUSSE:
@@ -193,12 +188,12 @@ if __name__ == "__main__":
         new_game()
 
         # Brouillon musique adaptative
-        pygame.mixer.init()
-        pygame.mixer.music.load(resource_path(r"assets/music/Level 1.ogg"))
-        pygame.mixer.music.set_endevent(MUSIC_END)
-        pygame.mixer.music.play()
-        pygame.mixer.music.queue(resource_path(r"assets/music/Transition 1-2.ogg"))
-        pygame.mixer.music.set_volume(0.5)
+        if not IN_CODESPACE:
+            pygame.mixer.music.load(resource_path(r"assets/music/Level 1.ogg"))
+            pygame.mixer.music.set_endevent(MUSIC_END)
+            pygame.mixer.music.play()
+            pygame.mixer.music.queue(resource_path(r"assets/music/Transition 1-2.ogg"))
+            pygame.mixer.music.set_volume(0.5)
 
         next_frame: int = pygame.time.get_ticks() - 1
 

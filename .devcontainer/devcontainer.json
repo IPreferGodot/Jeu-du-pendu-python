@@ -9,7 +9,8 @@
 		"ms-python.python",
 		"cstrap.flask-snippets",
 		"oderwat.indent-rainbow",
-		"wayou.vscode-todo-highlight"
+		"wayou.vscode-todo-highlight",
+		"jdinhlife.gruvbox"
 	],
 
 	// Features to add to the dev container. More info: https://containers.dev/features.

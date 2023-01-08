@@ -1,7 +1,12 @@
 from path_rectifier import *
-import pygame, sys, word_chooser
+import pygame, sys, word_chooser, os
 from pygame.locals import QUIT, KEYDOWN, USEREVENT
 from math import cos
+
+try:
+    os.environ["DISPLAY"]
+except:
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 if __name__ == "__main__":
     if word_chooser.HAS_LAROUSSE:

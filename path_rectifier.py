@@ -9,4 +9,4 @@ def resource_path(relative_path: str) -> str:
     except Exception:
         base_path = os_path.abspath(".")
 
-    return os_path.join(base_path, relative_path)
+    return os_path.join(base_path, *relative_path.split("\\"))

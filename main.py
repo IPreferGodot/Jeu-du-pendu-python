@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     def draw_hangman() -> None:
         """Aplique les images par rapport au nombre d'erreurs."""
-        SCREEN.blit(HANGMAN_IMAGES[errors], HANGMAN_POS)
+        SCREEN.blit(HANGMAN_IMAGES[min(errors, len(HANGMAN_IMAGES) - 1)], HANGMAN_POS)
 
 
     # SIZE REDUCED
@@ -250,7 +250,15 @@ if __name__ == "__main__":
                                 SCREEN.blit(text, (960, 540))
                                 pygame.display.flip()
                                 state = STATE_TRANSITION
-                                # pygame.time.wait(3000)
+                                correct_letters.clear()
+                                correct_letters.extend(set(word))
+                                # clear l'écran
+                                SCREEN.fill(BACKGROUND_COLOR)
+                                # met les images et le mot à deviner
+                                draw_hangman()
+                                draw_word()
+                                pygame.display.flip()
+                                pygame.time.wait(3000)
                                 new_game(-1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
                                 #montre le mots

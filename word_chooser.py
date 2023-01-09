@@ -1,9 +1,10 @@
 DEBUG = False
 SUB_PROCESS_PREFIX = " -sub- "
 
-print("Importing...")
+print("Wordchooser : Importing...", end="\r")
 import pandas
 from path_rectifier import *
+print("Wordchooser : Importing : OK")
 
 
 HAS_LAROUSSE = False
@@ -22,9 +23,9 @@ if HAS_LAROUSSE:
     import multiprocessing, multiprocessing.connection # (import connection just for type hint)
 
 
-print("Loading words...", end="")
+print("Wordchooser : Loading words...", end="\r")
 words: pandas.DataFrame = pandas.read_csv(resource_path(r"assets/data/words.csv"))
-print(" ok")
+print("Wordchooser : Loading words : OK")
 
 DOWN_RANGE_MAX: int = len(words) - 500 # Valeur maximale du bas de la plage aléatoire
 UP_RANGE_MIN: int = 500  # Valeur minimale du bas de la plage aléatoire
@@ -173,13 +174,13 @@ def init_process() -> None:
         print("[E] Process was already created.")
         return
 
-    print("Initializing process...", end="")
+    print("Initializing process...", end="\r")
 
     connection_parent, _connection_child = multiprocessing.Pipe(duplex=True)
     process = multiprocessing.Process(target=process_loop, args=(_connection_child,), )
     process.start()
 
-    print(" ok")
+    print("Initializing process : OK")
 
 
 if True and __name__ == "__main__":

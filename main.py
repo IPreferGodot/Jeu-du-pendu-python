@@ -7,11 +7,11 @@ if __name__ == "__main__":
     if word_chooser.HAS_LAROUSSE:
         word_chooser.multiprocessing.freeze_support()
 
-    print("Initializing pygame...")
+    print("Initializing pygame...", end="\r")
     pygame.init()
     pygame.display.set_caption("Pendu")
+    print("Initializing pygame : OK")
 
-    print("Initializing word_chooser...")
     word_chooser.init_process()
 
 
@@ -49,6 +49,25 @@ if __name__ == "__main__":
     STATE_PLAYING = 1
     STATE_WAITING_WORD = 2
     STATE_TRANSITION = 3
+
+    LETTER_CORRESPONDANCE =  {
+    'é': "e",
+    'â': "a",
+    'è': "e",
+    'ê': "e",
+    'î': "i",
+    'û': "u",
+    'ç': "c",
+    'ï': "i",
+    'ô': "o",
+    'ö': "o",
+    'ë': "e",
+    'ü': "u",
+    'à': "a",
+    'ã': "a",
+    "'": '',
+    'œ': "oe"
+}
 
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1

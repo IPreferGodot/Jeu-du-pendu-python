@@ -45,12 +45,16 @@ if __name__ == "__main__":
     # colors
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
+    RED = (255, 0, 0)
+    GREEN = (0, 255, 0)
 
     # game
     DIFFICULTY_CHANGE = 1000
     STATE_PLAYING = 1
     STATE_WAITING_WORD = 2
-    STATE_TRANSITION = 3
+    STATE_TRANSITION = 3 # Unused
+    STATE_WIN_ANIMATION = 4
+    STATE_LOOSE_ANIMATION = 5
 
     LETTER_CORRESPONDANCE =  {
     'é': "e",
@@ -73,6 +77,7 @@ if __name__ == "__main__":
 
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
+    ANIMATION_END = MUSIC_END + 1
 
     # ----------------- Variables ------------------
     prechoosed_words: dict[int, list[word_chooser.Word]] = {} # Stocke les mots obtenus en arrière plan
@@ -114,11 +119,16 @@ if __name__ == "__main__":
     def draw_word(x: int = 72,  y: int = 120) -> None:
         """Dessine le mot à deviner sur l'écran, avec les lettres correctes montrées et cells incorrectes transformées en "_"."""
         for letter in word:
-            # Redéssine un "_" si la lettre n'as pas été devinée
-            text = FONT.render(letter if letter in correct_letters else "_" , True, BLACK)
+            found = letter in correct_letters
+
+            text = FONT.render(
+                # Déssine un "_" si la lettre n'as pas été devinée
+                letter if found or state == STATE_LOOSE_ANIMATION else "_",
+                True,
+                GREEN if state == STATE_WIN_ANIMATION else BLACK if found or state == STATE_PLAYING else RED
+            )
             SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
-            # SIZE REDUCED
-            # x += 144
+
             x += 72
 
 
@@ -156,8 +166,8 @@ if __name__ == "__main__":
 
         `has_won` :
             -1 : loosed
-             0 : was not a round end
-             1 : won"""
+            0 : was not a round end
+            1 : won"""
 
         print("Starting a new round with has_won =", has_won)
 
@@ -218,6 +228,11 @@ if __name__ == "__main__":
                     sys.exit()
                 elif what == MUSIC_END:
                     pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
+                elif what == ANIMATION_END:
+                    if state == STATE_LOOSE_ANIMATION:
+                        new_game(-1)
+                    elif state == STATE_WIN_ANIMATION:
+                        new_game(1)
                 elif state == STATE_PLAYING and what == KEYDOWN:
                     key = event.unicode # Prend la touche.
 
@@ -229,29 +244,31 @@ if __name__ == "__main__":
                             # Check si le joueur a gagné ou perdu
                             if set(word) == set(correct_letters):
                                 # met le message et quitte le jeu après un temps impparti si le joueur a gagné
-                                text = FONT.render("Gagné !", True, BLACK)
-                                SCREEN.blit(text, (960, 540))
-                                pygame.display.flip()
-                                state = STATE_TRANSITION
+                                # text = FONT.render("Gagné !", True, BLACK)
+                                # SCREEN.blit(text, (960, 540))
+                                # pygame.display.flip()
+                                state = STATE_WIN_ANIMATION
+                                pygame.time.set_timer(ANIMATION_END, 3_000)
                                 # pygame.time.wait(3000)
-                                new_game(1)
+                                # new_game(1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
                             elif errors == len(HANGMAN_IMAGES):
                                 # même chose mais s'l a perdu
-                                text = FONT.render("Perdu...", True, BLACK)
-                                SCREEN.blit(text, (960, 540))
-                                pygame.display.flip()
-                                state = STATE_TRANSITION
-                                correct_letters.clear()
-                                correct_letters.extend(set(word))
+                                # text = FONT.render("Perdu...", True, BLACK)
+                                # SCREEN.blit(text, (960, 540))
+                                # pygame.display.flip()
+                                state = STATE_LOOSE_ANIMATION
+                                pygame.time.set_timer(ANIMATION_END, 3_000)
+                                # correct_letters.clear()
+                                # correct_letters.extend(set(word))
                                 # clear l'écran
-                                SCREEN.fill(BACKGROUND_COLOR)
+                                # SCREEN.fill(BACKGROUND_COLOR)
                                 # met les images et le mot à deviner
-                                draw_hangman()
-                                draw_word()
-                                pygame.display.flip()
-                                pygame.time.wait(3000)
-                                new_game(-1)
+                                # draw_hangman()
+                                # draw_word()
+                                # pygame.display.flip()
+                                # pygame.time.wait(3000)
+                                # new_game(-1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
                                 #montre le mots
                                 #correct_letters = list(word)
@@ -267,7 +284,7 @@ if __name__ == "__main__":
                     print("latency :", pygame.time.get_ticks() - next_frame)
                 next_frame = pygame.time.get_ticks() + FRAME_TIME
 
-                if state == STATE_PLAYING:
+                if state == STATE_PLAYING or state == STATE_WIN_ANIMATION or state == STATE_LOOSE_ANIMATION:
                     # clear l'écran
                     SCREEN.fill(BACKGROUND_COLOR)
                     # met les images et le mot à deviner

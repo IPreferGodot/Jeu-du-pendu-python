@@ -27,9 +27,9 @@ print("Wordchooser : Loading words...", end="\r")
 words: pandas.DataFrame = pandas.read_csv(resource_path(r"assets/data/words.csv"))
 print("Wordchooser : Loading words : OK")
 
-DOWN_RANGE_MAX: int = len(words) - 500 # Valeur maximale du bas de la plage aléatoire
-UP_RANGE_MIN: int = 500  # Valeur minimale du bas de la plage aléatoire
 WORDS_COUNT = len(words)
+DOWN_RANGE_MAX: int = WORDS_COUNT - 500 # Valeur maximale du bas de la plage aléatoire
+UP_RANGE_MIN: int = 500  # Valeur minimale du bas de la plage aléatoire
 RANGE = 1000
 
 DEFAULT_MAX_ATTEMPTS = 10

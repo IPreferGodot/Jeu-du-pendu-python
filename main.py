@@ -95,7 +95,12 @@ if __name__ == "__main__":
 
     # ----------------- Functions ------------------
     def vec_minus(a: tuple, b: tuple) -> tuple:
+        """Substract to tuple like 2D vectors."""
         return a[0]-b[0], a[1]-b[1]
+
+    def is_state(*wanted_states: int) -> bool:
+        """Return True if the actual state is one of the wanted states."""
+        return state in wanted_states
 
     def add_prechoosed_word(word: word_chooser.Word) -> None:
         global state
@@ -129,7 +134,7 @@ if __name__ == "__main__":
             )
             SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
 
-            x += 72
+            x += text.get_size()[0] + 10
 
 
     def draw_waiting_for_word() -> None:
@@ -284,7 +289,7 @@ if __name__ == "__main__":
                     print("latency :", pygame.time.get_ticks() - next_frame)
                 next_frame = pygame.time.get_ticks() + FRAME_TIME
 
-                if state == STATE_PLAYING or state == STATE_WIN_ANIMATION or state == STATE_LOOSE_ANIMATION:
+                if is_state(STATE_PLAYING, STATE_WIN_ANIMATION, STATE_LOOSE_ANIMATION):
                     # clear l'écran
                     SCREEN.fill(BACKGROUND_COLOR)
                     # met les images et le mot à deviner
@@ -294,99 +299,5 @@ if __name__ == "__main__":
 
                 # Update l'écran
 
-    '''
-    def main_Xenozk() -> None:
-        """Loop principale (Version de Xenozk)"""
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN:
-                    # prend la touche.
-                    key = event.unicode
-                    # pour etre sur que la touche soit une lettre
-                    if key.isalpha():
-                        # met la touche en minuscule
-                        key = key.lower()
-                        # etre sur que la lettre n'as pas eté deja utiliser
-                        if key not in already_guessed:
-                            handle_input(key)
-                            # Check si le joueur a gagné ou perdu
-                            if set(word) == set(correct_letters):
-                                # met le message et quitte le jeu après un temps apparti si le joueur a gagné
-                                text = font.render("Gagné!", True, black)
-                                screen.blit(text, (960, 540))
-                                pygame.display.flip()
-                                pygame.time.wait(3000)
-                                running = False
-                            elif incorrect_guesses == 7:
-                                #meme chose mais si il a perdu
-                                text = font.render("Perdu!", True, black)
-                                screen.blit(text, (960, 540))
-                                pygame.display.flip()
-                                pygame.time.wait(3000)
-                                running = False
-                                #montre le mots
-                                #correct_letters = list(word)
-            # clear l'écran
-            screen.fill((248,248,255))
-            # met les images et le mot a étre deviner
-            draw_hangman()
-            draw_word()
-            # Update l'écran
-            pygame.display.flip()
-
-
-    def main_old() -> None:
-        """
-        Version IPreferGodot construite à partir du premier jet de Xenozk.
-        Ne contient aucun gameplay, juste des tests.
-        """
-
-        # Brouillon musique adaptative
-        pygame.mixer.music.load(resource_path(r"assets/music/Level 1.ogg"))
-        pygame.mixer.music.set_endevent(MUSIC_END)
-        pygame.mixer.music.play()
-        pygame.mixer.music.queue(resource_path(r"assets/music/Transition 1-2.ogg"))
-        pygame.mixer.music.set_volume(0.5)
-
-        test = 0
-        next_frame = pygame.time.get_ticks() - 1
-
-        DISPLAYSURF.fill(BACKGROUND_COLOR)
-        pygame.display.flip()
-
-        print("\n======================= Main loop start =======================\n")
-        while True:
-            if pygame.time.get_ticks() > next_frame:
-                next_frame = pygame.time.get_ticks() + FRAME_TIME
-                DISPLAYSURF.fill(BACKGROUND_COLOR)
-                test += 1
-                test %= 4
-                DISPLAYSURF.blit(hangman_images[test], hangman_images[0].get_rect())
-                pygame.display.update(hangman_images[0].get_rect())
-                if test == 1:
-                    word_chooser.get_word_async(1000)
-                    print("prechoosed_words lenght :", len(prechoosed_words), "│ word :", repr(prechoosed_words.pop()) if len(prechoosed_words)!=0 else "EMPTY")
-
-            # if word_chooser.word_queue:
-            #     while not word_chooser.word_queue.empty():
-            #         prechoosed_words.append(word_chooser.word_queue.get())
-
-            if word_chooser.connection_parent:
-                while word_chooser.connection_parent.poll():
-                    prechoosed_words.append(word_chooser.connection_parent.recv())
-
-
-            for event in pygame.event.get():
-                what = event.type
-                if what == QUIT:
-                    pygame.quit()
-                    word_chooser.terminate()
-                    sys.exit()
-                elif what == MUSIC_END:
-                    pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
-    '''
 
     main()

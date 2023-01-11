@@ -114,20 +114,12 @@ if __name__ == "__main__":
     def draw_word(x: int = 72,  y: int = 120) -> None:
         """Dessine le mot à deviner sur l'écran, avec les lettres correctes montrées et cells incorrectes transformées en "_"."""
         for letter in word:
-            if letter in correct_letters:
-                # Met la lettre si elle a été correctement devinée
-                text = FONT.render(letter, True, BLACK)
-                SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
-                # SIZE REDUCED
-                # x += 144
-                x += 72
-            else:
-                # Redéssine un "_" si la lettre n'as pas été devinée
-                text = FONT.render("_", True, BLACK)
-                SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
-                # SIZE REDUCED
-                # x += 144
-                x += 72
+            # Redéssine un "_" si la lettre n'as pas été devinée
+            text = FONT.render(letter if letter in correct_letters else "_" , True, BLACK)
+            SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
+            # SIZE REDUCED
+            # x += 144
+            x += 72
 
 
     def draw_waiting_for_word() -> None:

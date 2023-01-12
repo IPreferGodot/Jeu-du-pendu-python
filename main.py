@@ -1,6 +1,6 @@
 from path_rectifier import *
 import pygame, sys, word_chooser, os
-from pygame.locals import QUIT, KEYDOWN, USEREVENT
+from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT
 from math import cos
 
 IN_CODESPACE = os.environ.get("CODESPACES", False)
@@ -29,7 +29,6 @@ if __name__ == "__main__":
     HANGMAN_SIZE = (400, 400)
     # SIZE REDUCED
     # HANGMAN_POS = (150, 300)
-    HANGMAN_POS = (75, 150)
     SCREEN = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
     FONT = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 100)
     FONT_SMALL = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 20)
@@ -92,6 +91,11 @@ if __name__ == "__main__":
     correct_letters = [] # liste des lettres correctement devinée
     already_guessed = [] # liste des lettres déjà essayées
 
+    # Elements position
+    hangman_pos = (75, 150)
+
+
+
 
     # ----------------- Functions ------------------
     def vec_minus(a: tuple, b: tuple) -> tuple:
@@ -101,6 +105,12 @@ if __name__ == "__main__":
     def is_state(*wanted_states: int) -> bool:
         """Return True if the actual state is one of the wanted states."""
         return state in wanted_states
+
+
+    def update_elements_pos(width: int, height: int) -> None:
+        global hangman_pos
+        hangman_pos = (width // 2 - HANGMAN_SIZE[0] // 2, height - HANGMAN_SIZE[1])
+
 
     def add_prechoosed_word(word: word_chooser.Word) -> None:
         global state
@@ -116,7 +126,7 @@ if __name__ == "__main__":
 
     def draw_hangman() -> None:
         """Aplique les images par rapport au nombre d'erreurs."""
-        SCREEN.blit(HANGMAN_IMAGES[min(errors, len(HANGMAN_IMAGES) - 1)], HANGMAN_POS)
+        SCREEN.blit(HANGMAN_IMAGES[min(errors, len(HANGMAN_IMAGES) - 1)], hangman_pos)
 
 
     # SIZE REDUCED
@@ -211,6 +221,8 @@ if __name__ == "__main__":
 
         global state
 
+        update_elements_pos(*pygame.display.get_window_size())
+
         new_game()
 
         # Brouillon musique adaptative
@@ -231,6 +243,8 @@ if __name__ == "__main__":
                     pygame.quit()
                     word_chooser.terminate()
                     sys.exit()
+                elif what == WINDOW_SIZE_CHANGED:
+                    update_elements_pos(event.x, event.y)
                 elif what == MUSIC_END:
                     pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
                 elif what == ANIMATION_END:

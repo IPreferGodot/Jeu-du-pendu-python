@@ -34,25 +34,54 @@ RANGE = 1000
 
 DEFAULT_MAX_ATTEMPTS = 10
 
+LETTER_CORRESPONDANCE =  {
+    'é': "e",
+    'â': "a",
+    'è': "e",
+    'ê': "e",
+    'î': "i",
+    'û': "u",
+    'ç': "c",
+    'ï': "i",
+    'ô': "o",
+    'ö': "o",
+    'ë': "e",
+    'ü': "u",
+    'à': "a",
+    'ã': "a",
+    "'": '',
+    'œ': "oe"
+}
+
 class Word():
     """Store a word, with some informations about it."""
-    def __init__(self, word: str, difficulty: int, definitions: list[str]|None = None) -> None:
-        self.word: str = word
+    def __init__(self, rich_word: str, difficulty: int, definitions: list[str]|None = None) -> None:
+        self.raw_word: str = rich_word.lower() # The word, but as shown when searched
+        for special_char, new_char in LETTER_CORRESPONDANCE.items():
+            self.raw_word = self.raw_word.replace(special_char, new_char)
+        self.letter_set = set(self.raw_word)
+
         self.difficulty: int = difficulty
 
-        self.has_definitions: bool = False
+        self.rich_word: str = rich_word # The word with it's special characters
         self.definitions: list[str] = ["Installez larousse-api pour avoir accès aux définitions des mots."]
+        # self.has_definitions: bool = False
 
         if definitions:
-            self.has_definitions = True
             self.definitions = definitions
+            # self.has_definitions = True
+
+        self.wrong_guesses = 0 # Nombre de lettres incorrectes (mis par defaut à 0)
+        self.found_letters = [] # Liste des lettres correctement devinée
+        self.guessed_letters = [] # Liste des lettres déjà essayées
 
     def __str__(self) -> str:
-        return self.word
+        return self.raw_word
 
     def __repr__(self) -> str:
-        return f"{self.word} ({self.difficulty})"
+        return f"<{self.rich_word} ({self.raw_word}) {self.difficulty}>"
 
+# print(repr(Word("à l'œuf", 0)))
 
 class WordRequest():
     def __init__(self, difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> None:

@@ -1,6 +1,7 @@
 from path_rectifier import *
 import pygame, sys, word_chooser, os
 from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT
+from word_chooser import Word
 from math import cos
 
 IN_CODESPACE = os.environ.get("CODESPACES", False)
@@ -32,13 +33,13 @@ if __name__ == "__main__":
     SCREEN = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
     FONT = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 100)
     FONT_SMALL = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 20)
-    MAX_ERRORS: int = 7
+    MAX_WRONG: int = 7
     HANGMAN_IMAGES: list[pygame.Surface] = [
         pygame.transform.scale(
             pygame.image.load(resource_path(f"assets/img/sprites/hangman/hangman{idx}.png")),
             HANGMAN_SIZE
         )
-        for idx in range(MAX_ERRORS)
+        for idx in range(MAX_WRONG)
     ]
 
     # colors
@@ -55,46 +56,43 @@ if __name__ == "__main__":
     STATE_WIN_ANIMATION = 4
     STATE_LOOSE_ANIMATION = 5
 
-    LETTER_CORRESPONDANCE =  {
-    'é': "e",
-    'â': "a",
-    'è': "e",
-    'ê': "e",
-    'î': "i",
-    'û': "u",
-    'ç': "c",
-    'ï': "i",
-    'ô': "o",
-    'ö': "o",
-    'ë': "e",
-    'ü': "u",
-    'à': "a",
-    'ã': "a",
-    "'": '',
-    'œ': "oe"
-}
-
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
     ANIMATION_END = MUSIC_END + 1
 
     # ----------------- Variables ------------------
-    prechoosed_words: dict[int, list[word_chooser.Word]] = {} # Stocke les mots obtenus en arrière plan
-    word_history: list[word_chooser.Word] = [] # Garde une trace des mots déjà montrés au joueur, par exemple au cas où il veuille en revoir la définition
-    state: int = STATE_WAITING_WORD
+    class Layout():
+        """
+        Contient les informations relatives à la taille et la position des éléments à l'écran.
+        """
 
-    current_difficulty: int = 0
+        def __init__(self) -> None:
+            self.scale = 1
 
-    word = "nonchoisi"
-    definitions = ["Installez larousse-api pour avoir accès aux définitions des mots."]
-    errors = 0 # nombre de lettres incorrectes (mis par defaut à 0)
-    correct_letters = [] # liste des lettres correctement devinée
-    already_guessed = [] # liste des lettres déjà essayées
+            self.hangman_pos = (75, 150)
 
-    # Elements position
-    hangman_pos = (75, 150)
+    layout = Layout()
 
 
+    class Globals():
+        """
+        Contient les variables "globales" du programme.
+        Permet de mieux distinguer quelles variables sont globales ou locales, si le mot-clé `global` est éloigné.
+        """
+
+        def __init__(self) -> None:
+            self.state: int = STATE_WAITING_WORD
+            self.current_difficulty: int = 0
+            self.word = Word("non initialisé", 0, ["La variable `word` a été initialisée, mais aucun mot n'a été choisi."])
+
+            self.prechoosed_words: dict[int, list[word_chooser.Word]] = {} # Stocke les mots obtenus en arrière plan
+            self.word_history: list[word_chooser.Word] = [] # Garde une trace des mots déjà montrés au joueur, par exemple au cas où il veuille en revoir la définition.
+
+            # self.wrong_guesses = 0 # nombre de lettres incorrectes (mis par defaut à 0)
+            # self.found_letters = [] # liste des lettres correctement devinée
+            # self.guessed_letters = [] # liste des lettres déjà essayées
+
+    _g = Globals()
 
 
     # ----------------- Functions ------------------
@@ -102,48 +100,46 @@ if __name__ == "__main__":
         """Substract to tuple like 2D vectors."""
         return a[0]-b[0], a[1]-b[1]
 
+
     def is_state(*wanted_states: int) -> bool:
         """Return True if the actual state is one of the wanted states."""
-        return state in wanted_states
+        return _g.state in wanted_states
 
 
     def update_elements_pos(width: int, height: int) -> None:
-        global hangman_pos
-        hangman_pos = (width // 2 - HANGMAN_SIZE[0] // 2, height - HANGMAN_SIZE[1])
+        layout.hangman_pos = (width // 2 - HANGMAN_SIZE[0] // 2, height - HANGMAN_SIZE[1])
 
 
     def add_prechoosed_word(word: word_chooser.Word) -> None:
-        global state
-
-        if word.difficulty in prechoosed_words:
-            prechoosed_words[word.difficulty].append(word)
+        if word.difficulty in _g.prechoosed_words:
+            _g.prechoosed_words[word.difficulty].append(word)
         else:
-            prechoosed_words[word.difficulty] = [word]
+            _g.prechoosed_words[word.difficulty] = [word]
 
-        if state == STATE_WAITING_WORD and word.difficulty == current_difficulty:
+        if _g.state == STATE_WAITING_WORD and word.difficulty == _g.current_difficulty:
             new_game()
 
 
     def draw_hangman() -> None:
         """Aplique les images par rapport au nombre d'erreurs."""
-        SCREEN.blit(HANGMAN_IMAGES[min(errors, len(HANGMAN_IMAGES) - 1)], hangman_pos)
+        SCREEN.blit(HANGMAN_IMAGES[min(_g.word.wrong_guesses, len(HANGMAN_IMAGES) - 1)], layout.hangman_pos)
 
 
     # SIZE REDUCED
     # def draw_word(x: int = 960,  y: int = 240) -> None:
     def draw_word(x: int = 72,  y: int = 120) -> None:
         """Dessine le mot à deviner sur l'écran, avec les lettres correctes montrées et cells incorrectes transformées en "_"."""
-        for letter in word:
-            found = letter in correct_letters
+        for letter in _g.word.raw_word:
+            found = letter in _g.word.found_letters
 
             text = FONT.render(
                 # Déssine un "_" si la lettre n'as pas été devinée
-                letter if found or state == STATE_LOOSE_ANIMATION else "_",
+                letter if found or _g.state == STATE_LOOSE_ANIMATION else "_",
                 True,
-                GREEN if state == STATE_WIN_ANIMATION else BLACK if found or state == STATE_PLAYING else RED
+                GREEN if _g.state == STATE_WIN_ANIMATION else BLACK if found or _g.state == STATE_PLAYING else RED
             )
-            SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
 
+            SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
             x += text.get_size()[0] + 10
 
 
@@ -157,69 +153,70 @@ if __name__ == "__main__":
 
     def handle_input(guess: str) -> None:
         """Gère les entrées du joueur et met a jour l'état du jeu en fonction de la touche."""
-        global errors
-        if guess in word:
-            # Met la lettre correcte  dans la liste correct_letters
-            correct_letters.append(guess)
+        # global wrong_guesses
+
+        _g.word.guessed_letters.append(guess)
+        if guess in _g.word.letter_set:
+            # Met la lettre correcte  dans la liste found_letters
+            _g.word.found_letters.append(guess)
         else:
             # Ajoute 1 au nombre de lettres incorrectes et met la lettre dans la liste des déjà devinées (mais fausses)
-            errors += 1
-            already_guessed.append(guess)
+            _g.word.wrong_guesses += 1
 
 
     def set_word(new_word: word_chooser.Word) -> None:
         """Change les variables globales lorsqu'un nouveau mot est choisi."""
-        global word, definitions
+        # global word, definitions
 
-        word_history.append(new_word)
-
-        word = new_word.word
-        definitions = new_word.definitions
+        _g.word_history.append(new_word)
+        _g.word = new_word
 
     def new_game(has_won: int = 0) -> None:
-        """Start a new round.
+        """
+        Start a new round.
 
         `has_won` :
             -1 : loosed
             0 : was not a round end
-            1 : won"""
+            1 : won
+        """
 
         print("Starting a new round with has_won =", has_won)
 
-        global errors, current_difficulty, state
+        # global wrong_guesses, current_difficulty, state
 
-        current_difficulty += DIFFICULTY_CHANGE * has_won
+        _g.current_difficulty += DIFFICULTY_CHANGE * has_won
 
-        errors = 0
-        already_guessed.clear()
-        correct_letters.clear()
+        # wrong_guesses = 0
+        # guessed_letters.clear()
+        # found_letters.clear()
 
         if word_chooser.HAS_LAROUSSE:
             # Prend le mot trouvé à l'avance
-            if prechoosed_words.get(current_difficulty, None): # Vérifie s'il y a un mot préchoisit (ni None ni liste vide)
-                set_word(prechoosed_words[current_difficulty].pop())
+            if _g.prechoosed_words.get(_g.current_difficulty, None): # Vérifie s'il y a un mot préchoisit (ni None ni liste vide)
+                set_word(_g.prechoosed_words[_g.current_difficulty].pop())
             else:
-                word_chooser.get_word_async(current_difficulty)
-                state = STATE_WAITING_WORD
+                word_chooser.get_word_async(_g.current_difficulty)
+                _g.state = STATE_WAITING_WORD
                 draw_waiting_for_word()
                 return # Empêche state = STATE_PLAYING, ainsi que d'appeler les mots par prévoyances, qui seraient réappelés sinon au prochain appel
 
             # Demande les mots en cas de défaite ou de victoire à l'avance
-            win_difficulty, loose_difficulty = current_difficulty + DIFFICULTY_CHANGE, current_difficulty - DIFFICULTY_CHANGE
-            if not prechoosed_words.get(win_difficulty, None):
+            win_difficulty, loose_difficulty = _g.current_difficulty + DIFFICULTY_CHANGE, _g.current_difficulty - DIFFICULTY_CHANGE
+            if not _g.prechoosed_words.get(win_difficulty, None):
                 word_chooser.get_word_async(win_difficulty)
-            if not prechoosed_words.get(loose_difficulty, None):
+            if not _g.prechoosed_words.get(loose_difficulty, None):
                 word_chooser.get_word_async(loose_difficulty)
         else:
-            set_word(word_chooser.get_word(current_difficulty))
+            set_word(word_chooser.get_word(_g.current_difficulty))
 
-        state = STATE_PLAYING
+        _g.state = STATE_PLAYING
 
 
     def main() -> None:
         """Fusion des versions de Xenozk et IPreferGodot."""
 
-        global state
+        # global state
 
         update_elements_pos(*pygame.display.get_window_size())
 
@@ -248,38 +245,38 @@ if __name__ == "__main__":
                 elif what == MUSIC_END:
                     pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
                 elif what == ANIMATION_END:
-                    if state == STATE_LOOSE_ANIMATION:
+                    if _g.state == STATE_LOOSE_ANIMATION:
                         new_game(-1)
-                    elif state == STATE_WIN_ANIMATION:
+                    elif _g.state == STATE_WIN_ANIMATION:
                         new_game(1)
-                elif state == STATE_PLAYING and what == KEYDOWN:
+                elif _g.state == STATE_PLAYING and what == KEYDOWN:
                     key = event.unicode # Prend la touche.
 
                     if key.isalpha(): # pour etre sur que la touche soit une lettre
                         key = key.lower() # met la touche en minuscule
 
-                        if key not in already_guessed: # Vérifie que la lettre n'as pas déjà été utilisée
+                        if key not in _g.word.guessed_letters: # Vérifie que la lettre n'as pas déjà été utilisée
                             handle_input(key)
                             # Check si le joueur a gagné ou perdu
-                            if set(word) == set(correct_letters):
+                            if set(_g.word.guessed_letters) == _g.word.letter_set:
                                 # met le message et quitte le jeu après un temps impparti si le joueur a gagné
                                 # text = FONT.render("Gagné !", True, BLACK)
                                 # SCREEN.blit(text, (960, 540))
                                 # pygame.display.flip()
-                                state = STATE_WIN_ANIMATION
+                                _g.state = STATE_WIN_ANIMATION
                                 pygame.time.set_timer(ANIMATION_END, 3_000)
                                 # pygame.time.wait(3000)
                                 # new_game(1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
-                            elif errors == len(HANGMAN_IMAGES):
+                            elif _g.word.wrong_guesses == MAX_WRONG:
                                 # même chose mais s'l a perdu
                                 # text = FONT.render("Perdu...", True, BLACK)
                                 # SCREEN.blit(text, (960, 540))
                                 # pygame.display.flip()
-                                state = STATE_LOOSE_ANIMATION
+                                _g.state = STATE_LOOSE_ANIMATION
                                 pygame.time.set_timer(ANIMATION_END, 3_000)
-                                # correct_letters.clear()
-                                # correct_letters.extend(set(word))
+                                # found_letters.clear()
+                                # found_letters.extend(set(word))
                                 # clear l'écran
                                 # SCREEN.fill(BACKGROUND_COLOR)
                                 # met les images et le mot à deviner
@@ -290,7 +287,7 @@ if __name__ == "__main__":
                                 # new_game(-1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
                                 #montre le mots
-                                #correct_letters = list(word)
+                                #found_letters = list(word)
 
             # On vide les mots préchoisis si le multiprocessing est activé
             if word_chooser.connection_parent:

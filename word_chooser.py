@@ -120,7 +120,8 @@ def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
         print("[W] This word is not in the larousse dictionnary :", word)
         attempts += 1
 
-    return "inexistant"
+    print("[E] No word within the Larousse was found. Returning the last found word.")
+    return Word(word, difficulty)
 
 
 def process_loop(connection: "multiprocessing.connection.Connection") -> None:

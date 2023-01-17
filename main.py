@@ -1,6 +1,7 @@
 from path_rectifier import *
 import pygame, sys, word_chooser, os
 from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT
+from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
 
@@ -21,23 +22,23 @@ if __name__ == "__main__":
     # ----------------- Constants ------------------
     # Pygame
     FRAME_TIME = int(1/60 * 1000) # In ms
-    BACKGROUND_COLOR = (248,248,255)
+    BACKGROUND_COLOR = (248, 248, 255)
     # SIZE REDUCED
-    # WINDOW_SIZE = (1920, 1080)
-    WINDOW_SIZE = (960, 540)
+    # WINDOW_ORIGINAL_SIZE = (1920, 1080)
+    WINDOW_ORIGINAL_SIZE = Vector2(960, 540)
     # SIZE REDUCED
-    # HANGMAN_SIZE = (800, 800)
-    HANGMAN_SIZE = (400, 400)
+    # HANGMAN_ORIGINAL_SIZE = (800, 800)
+    HANGMAN_ORIGINAL_SIZE = Vector2(400, 400)
     # SIZE REDUCED
     # HANGMAN_POS = (150, 300)
-    SCREEN = pygame.display.set_mode(WINDOW_SIZE, pygame.RESIZABLE)
+    SCREEN = pygame.display.set_mode(WINDOW_ORIGINAL_SIZE, pygame.RESIZABLE)
     FONT = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 100)
     FONT_SMALL = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 20)
     MAX_WRONG: int = 7
-    HANGMAN_IMAGES: list[pygame.Surface] = [
+    HANGMAN_ORIGINAL_IMAGES: list[pygame.Surface] = [
         pygame.transform.scale(
             pygame.image.load(resource_path(f"assets/img/sprites/hangman/hangman{idx}.png")),
-            HANGMAN_SIZE
+            HANGMAN_ORIGINAL_SIZE
         )
         for idx in range(MAX_WRONG)
     ]
@@ -61,19 +62,6 @@ if __name__ == "__main__":
     ANIMATION_END = MUSIC_END + 1
 
     # ----------------- Variables ------------------
-    class Layout():
-        """
-        Contient les informations relatives à la taille et la position des éléments à l'écran.
-        """
-
-        def __init__(self) -> None:
-            self.scale = 1
-
-            self.hangman_pos = (75, 150)
-
-    layout = Layout()
-
-
     class Globals():
         """
         Contient les variables "globales" du programme.
@@ -95,6 +83,36 @@ if __name__ == "__main__":
     _g = Globals()
 
 
+    class Layout():
+        """
+        Contient les informations relatives à la taille et la position des éléments à l'écran.
+        """
+
+        def __init__(self) -> None:
+            self.scale = 1
+
+            self.hangman_pos = (75, 150)
+            self.hangman_size = HANGMAN_ORIGINAL_SIZE
+            self.hangman_images = [] # On ne copie pas HANGMAN_ORIGINAL_IMAGES car la liste contiendrait les références aux mêmes surfaces
+
+            self.update()
+
+        def update(self, screen_width: int = None, screen_height: int = None) -> None:
+            if screen_width == None:
+                screen_width, screen_height = pygame.display.get_window_size()
+
+            # On choisi la taille la plus grande possible qui ne dépasse pas verticalement/horizontalement
+            self.scale = min(screen_width / WINDOW_ORIGINAL_SIZE.x, screen_height / WINDOW_ORIGINAL_SIZE.y)
+
+            self.hangman_size = HANGMAN_ORIGINAL_SIZE * self.scale
+            self.hangman_pos = (screen_width / 2 - self.hangman_size.x / 2, screen_height - self.hangman_size.y)
+            self.hangman_images.clear()
+            for original_surface in HANGMAN_ORIGINAL_IMAGES:
+                self.hangman_images.append(pygame.transform.scale(original_surface, self.hangman_size))
+
+    layout = Layout()
+
+
     # ----------------- Functions ------------------
     def vec_minus(a: tuple, b: tuple) -> tuple:
         """Substract to tuple like 2D vectors."""
@@ -104,10 +122,6 @@ if __name__ == "__main__":
     def is_state(*wanted_states: int) -> bool:
         """Return True if the actual state is one of the wanted states."""
         return _g.state in wanted_states
-
-
-    def update_elements_pos(width: int, height: int) -> None:
-        layout.hangman_pos = (width // 2 - HANGMAN_SIZE[0] // 2, height - HANGMAN_SIZE[1])
 
 
     def add_prechoosed_word(word: word_chooser.Word) -> None:
@@ -122,13 +136,13 @@ if __name__ == "__main__":
 
     def draw_hangman() -> None:
         """Aplique les images par rapport au nombre d'erreurs."""
-        SCREEN.blit(HANGMAN_IMAGES[min(_g.word.wrong_guesses, len(HANGMAN_IMAGES) - 1)], layout.hangman_pos)
+        SCREEN.blit(layout.hangman_images[min(_g.word.wrong_guesses, MAX_WRONG - 1)], layout.hangman_pos)
 
 
     # SIZE REDUCED
     # def draw_word(x: int = 960,  y: int = 240) -> None:
     def draw_word(x: int = 72,  y: int = 120) -> None:
-        """Dessine le mot à deviner sur l'écran, avec les lettres correctes montrées et cells incorrectes transformées en "_"."""
+        """Dessine le mot à deviner sur l'écran, avec les lettres correctes montrées et celles incorrectes transformées en "_"."""
         for letter in _g.word.raw_word:
             found = letter in _g.word.found_letters
 
@@ -218,7 +232,7 @@ if __name__ == "__main__":
 
         # global state
 
-        update_elements_pos(*pygame.display.get_window_size())
+        layout.update()
 
         new_game()
 
@@ -241,7 +255,7 @@ if __name__ == "__main__":
                     word_chooser.terminate()
                     sys.exit()
                 elif what == WINDOW_SIZE_CHANGED:
-                    update_elements_pos(event.x, event.y)
+                    layout.update(event.x, event.y)
                 elif what == MUSIC_END:
                     pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
                 elif what == ANIMATION_END:

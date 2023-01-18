@@ -1,6 +1,6 @@
 from path_rectifier import *
 import pygame, sys, word_chooser, os
-from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT
+from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT
 from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
@@ -32,8 +32,8 @@ if __name__ == "__main__":
     # SIZE REDUCED
     # HANGMAN_POS = (150, 300)
     SCREEN = pygame.display.set_mode(WINDOW_ORIGINAL_SIZE, pygame.RESIZABLE)
-    FONT = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 100)
-    FONT_SMALL = pygame.font.Font(resource_path(r"assets\fonts\DynaPuff.ttf"), 20)
+    FONT = pygame.font.Font(resource_path(r"assets\fonts\DotGothic16-Regular.ttf"), 100)
+    FONT_SMALL = pygame.font.Font(resource_path(r"assets\fonts\DotGothic16-Regular.ttf"), 20)
     MAX_WRONG: int = 7
     HANGMAN_ORIGINAL_IMAGES: list[pygame.Surface] = [
         pygame.transform.scale(

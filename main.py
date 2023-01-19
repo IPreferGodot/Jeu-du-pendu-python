@@ -272,7 +272,7 @@ if __name__ == "__main__":
                         if key not in _g.word.guessed_letters: # Vérifie que la lettre n'as pas déjà été utilisée
                             handle_input(key)
                             # Check si le joueur a gagné ou perdu
-                            if set(_g.word.guessed_letters) == _g.word.letter_set:
+                            if set(_g.word.found_letters) == _g.word.letter_set:
                                 # met le message et quitte le jeu après un temps impparti si le joueur a gagné
                                 # text = FONT.render("Gagné !", True, BLACK)
                                 # SCREEN.blit(text, (960, 540))

@@ -269,7 +269,7 @@ if __name__ == "__main__":
                     if key.isalpha(): # pour etre sur que la touche soit une lettre
                         key = key.lower() # met la touche en minuscule
 
-                        if key not in _g.word.guessed_letters: # Vérifie que la lettre n'as pas déjà été utilisée
+                        if key not in _g.word.guessed_letters and key in word_chooser.ALLOWED_LETTERS: # Vérifie que la lettre n'as pas déjà été utilisée
                             handle_input(key)
                             # Check si le joueur a gagné ou perdu
                             if set(_g.word.found_letters) == _g.word.letter_set:

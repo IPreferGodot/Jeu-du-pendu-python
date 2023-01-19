@@ -52,6 +52,8 @@ LETTER_CORRESPONDANCE =  {
     "'": '',
     'œ': "oe"
 }
+ALLOWED_LETTERS = [chr(ascii_decimal) for ascii_decimal in range(97, 123)] # Pick all letters from a to z
+
 
 class Word():
     """Store a word, with some informations about it."""

@@ -1,4 +1,4 @@
-from path_rectifier import *
+from path_rectifier import resource_path as res_path
 import pygame, sys, word_chooser, os
 from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT
 from pygame.math import Vector2
@@ -20,42 +20,47 @@ if __name__ == "__main__":
 
 
     # ----------------- Constants ------------------
-    # Pygame
-    FRAME_TIME = int(1/60 * 1000) # In ms
-    BACKGROUND_COLOR = (248, 248, 255)
-    # SIZE REDUCED
-    # WINDOW_ORIGINAL_SIZE = (1920, 1080)
-    WINDOW_ORIGINAL_SIZE = Vector2(960, 540)
-    # SIZE REDUCED
-    # HANGMAN_ORIGINAL_SIZE = (800, 800)
-    HANGMAN_ORIGINAL_SIZE = Vector2(400, 400)
-    # SIZE REDUCED
-    # HANGMAN_POS = (150, 300)
-    SCREEN = pygame.display.set_mode(WINDOW_ORIGINAL_SIZE, pygame.RESIZABLE)
-    FONT = pygame.font.Font(resource_path(r"assets\fonts\DotGothic16-Regular.ttf"), 100)
-    FONT_SMALL = pygame.font.Font(resource_path(r"assets\fonts\DotGothic16-Regular.ttf"), 20)
-    MAX_WRONG: int = 7
-    HANGMAN_ORIGINAL_IMAGES: list[pygame.Surface] = [
-        pygame.transform.scale(
-            pygame.image.load(resource_path(f"assets/img/sprites/hangman/hangman{idx}.png")),
-            HANGMAN_ORIGINAL_SIZE
-        )
-        for idx in range(MAX_WRONG)
-    ]
-
     # colors
+    BACKGROUND_COLOR = (248, 248, 255)
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
     RED = (255, 0, 0)
     GREEN = (0, 255, 0)
 
     # game
+    MAX_WRONG_GUESSES = 7
     DIFFICULTY_CHANGE = 1000
+
+    # states
     STATE_PLAYING = 1
     STATE_WAITING_WORD = 2
     STATE_TRANSITION = 3 # Unused
     STATE_WIN_ANIMATION = 4
     STATE_LOOSE_ANIMATION = 5
+
+    # Path
+    FONT_PATH = res_path(r"assets\fonts\DotGothic16-Regular.ttf")
+
+    # Pygame
+    FRAME_TIME = int(1/60 * 1000) # In ms
+
+    WINDOW_ORIGINAL_SIZE = Vector2(960, 540)
+    HANGMAN_ORIGINAL_SIZE = Vector2(400, 400)
+
+    BIG_FONT_ORIGINAL_SIZE = 100
+    SMALL_FONT_ORIGINAL_SIZE = 20
+    BIG_FONT_SPACING = 10
+    BIG_FONT_WIDTH, BIG_FONT_HEIGHT = Vector2(BIG_FONT_SPACING, BIG_FONT_SPACING*2) + pygame.font.Font(FONT_PATH, BIG_FONT_ORIGINAL_SIZE).size("a")
+
+    SCREEN = pygame.display.set_mode(WINDOW_ORIGINAL_SIZE, pygame.RESIZABLE)
+
+    HANGMAN_ORIGINAL_IMAGES: list[pygame.Surface] = [
+        pygame.transform.scale(
+            pygame.image.load(res_path(f"assets/img/sprites/hangman/hangman{idx}.png")),
+            HANGMAN_ORIGINAL_SIZE
+        )
+        for idx in range(MAX_WRONG_GUESSES)
+    ]
 
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
@@ -71,7 +76,7 @@ if __name__ == "__main__":
         def __init__(self) -> None:
             self.state: int = STATE_WAITING_WORD
             self.current_difficulty: int = 0
-            self.word = Word("non initialisé", 0, ["La variable `word` a été initialisée, mais aucun mot n'a été choisi."])
+            self.word: Word = Word("non initialisé", 0, ["La variable `word` a été initialisée, mais aucun mot n'a été choisi."])
 
             self.prechoosed_words: dict[int, list[word_chooser.Word]] = {} # Stocke les mots obtenus en arrière plan
             self.word_history: list[word_chooser.Word] = [] # Garde une trace des mots déjà montrés au joueur, par exemple au cas où il veuille en revoir la définition.
@@ -89,34 +94,64 @@ if __name__ == "__main__":
         """
 
         def __init__(self) -> None:
-            self.scale = 1
+            self.scale: float = None
+            self.letter_scale: float = None
 
-            self.hangman_pos = (75, 150)
-            self.hangman_size = HANGMAN_ORIGINAL_SIZE
-            self.hangman_images = [] # On ne copie pas HANGMAN_ORIGINAL_IMAGES car la liste contiendrait les références aux mêmes surfaces
+            self.hangman_pos: Vector2 = None
+            self.hangman_size: Vector2 = None
+            self.hangman_images: list[pygame.Surface] = []
+
+            self.big_font: pygame.font.Font = None
+            self.small_font: pygame.font.Font = None
+            self.letter_width: float = None
+            self.word_pos: pygame.math.Vector2 = None
+
+            self.unknown_letter: pygame.Surface
+            # self.letters: list[pygame.Surface] = None
 
             self.update()
 
-        def update(self, screen_width: int = None, screen_height: int = None) -> None:
+
+        def update(self, screen_width: int|None = None, screen_height: int|None = None) -> None:
             if screen_width == None:
                 screen_width, screen_height = pygame.display.get_window_size()
 
             # On choisi la taille la plus grande possible qui ne dépasse pas verticalement/horizontalement
             self.scale = min(screen_width / WINDOW_ORIGINAL_SIZE.x, screen_height / WINDOW_ORIGINAL_SIZE.y)
+            self.update_letter()
 
             self.hangman_size = HANGMAN_ORIGINAL_SIZE * self.scale
             self.hangman_pos = (screen_width / 2 - self.hangman_size.x / 2, screen_height - self.hangman_size.y)
-            self.hangman_images.clear()
-            for original_surface in HANGMAN_ORIGINAL_IMAGES:
-                self.hangman_images.append(pygame.transform.scale(original_surface, self.hangman_size))
+            self.hangman_images = [
+                pygame.transform.scale(original_surface, self.hangman_size)
+                for original_surface in HANGMAN_ORIGINAL_IMAGES
+            ]
+
+
+        def update_letter(self, screen_width: int = None, screen_height: int = None) -> None:
+            if screen_width == None:
+                screen_width, screen_height = pygame.display.get_window_size()
+
+            word_width = len(_g.word.raw_word) * BIG_FONT_WIDTH + BIG_FONT_SPACING
+            self.letter_scale = min(screen_width / word_width, screen_height / BIG_FONT_HEIGHT * 0.3)
+            self.letter_width = BIG_FONT_WIDTH * self.letter_scale
+
+            # self.word_pos = Vector2(screen_width/2 - word_width * self.letter_scale/2 + BIG_FONT_SPACING*self.letter_scale, BIG_FONT_SPACING * self.letter_scale)
+            # ↓ = factorisation de ↑
+            self.word_pos = Vector2(screen_width/2 - (word_width/2 - BIG_FONT_SPACING)*self.letter_scale, BIG_FONT_SPACING * self.letter_scale)
+
+
+            self.big_font = pygame.font.Font(FONT_PATH, int(BIG_FONT_ORIGINAL_SIZE * self.letter_scale))
+            self.small_font = pygame.font.Font(FONT_PATH, int(SMALL_FONT_ORIGINAL_SIZE * self.scale))
+            self.unknown_letter = self.big_font.render("_", True, BLACK)
 
     layout = Layout()
 
 
     # ----------------- Functions ------------------
-    def vec_minus(a: tuple, b: tuple) -> tuple:
-        """Substract to tuple like 2D vectors."""
-        return a[0]-b[0], a[1]-b[1]
+    # def vec_minus(a: tuple, b: tuple) -> tuple:
+    #     """Substract to tuple like 2D vectors."""
+    #     return a[0]-b[0], a[1]-b[1]
 
 
     def is_state(*wanted_states: int) -> bool:
@@ -136,7 +171,7 @@ if __name__ == "__main__":
 
     def draw_hangman() -> None:
         """Aplique les images par rapport au nombre d'erreurs."""
-        SCREEN.blit(layout.hangman_images[min(_g.word.wrong_guesses, MAX_WRONG - 1)], layout.hangman_pos)
+        SCREEN.blit(layout.hangman_images[min(_g.word.wrong_guesses, MAX_WRONG_GUESSES - 1)], layout.hangman_pos)
 
 
     # SIZE REDUCED
@@ -146,20 +181,21 @@ if __name__ == "__main__":
         for letter in _g.word.raw_word:
             found = letter in _g.word.found_letters
 
-            text = FONT.render(
+            text = layout.big_font.render(
                 # Déssine un "_" si la lettre n'as pas été devinée
                 letter if found or _g.state == STATE_LOOSE_ANIMATION else "_",
                 True,
                 GREEN if _g.state == STATE_WIN_ANIMATION else BLACK if found or _g.state == STATE_PLAYING else RED
+                # ,(x%255, x*2%255, x*3%255)
             )
 
-            SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10))
-            x += text.get_size()[0] + 10
+            SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10*layout.letter_scale))
+            x += layout.letter_width
 
 
     def draw_waiting_for_word() -> None:
         SCREEN.fill(WHITE)
-        msg = FONT_SMALL.render("En attente d'un mot...", True, BLACK)
+        msg = layout.small_font.render("En attente d'un mot...", True, BLACK)
         # SCREEN.blit(msg, vec_minus(SCREEN.get_rect().center, msg.get_rect().center))
         SCREEN.blit(msg, msg.get_rect(center=SCREEN.get_rect().center).topleft)
         pygame.display.flip()
@@ -184,6 +220,9 @@ if __name__ == "__main__":
 
         _g.word_history.append(new_word)
         _g.word = new_word
+
+        layout.update_letter()
+
 
     def new_game(has_won: int = 0) -> None:
         """
@@ -236,12 +275,12 @@ if __name__ == "__main__":
 
         new_game()
 
-        # Brouillon musique adaptative
         if not IN_CODESPACE:
-            pygame.mixer.music.load(resource_path(r"assets/music/Level 1.ogg"))
+            # Brouillon musique adaptative
+            pygame.mixer.music.load(res_path(r"assets/music/Level 1.ogg"))
             pygame.mixer.music.set_endevent(MUSIC_END)
             pygame.mixer.music.play()
-            pygame.mixer.music.queue(resource_path(r"assets/music/Transition 1-2.ogg"))
+            pygame.mixer.music.queue(res_path(r"assets/music/Transition 1-2.ogg"))
             pygame.mixer.music.set_volume(0.5)
 
         next_frame: int = pygame.time.get_ticks() - 1
@@ -256,8 +295,10 @@ if __name__ == "__main__":
                     sys.exit()
                 elif what == WINDOW_SIZE_CHANGED:
                     layout.update(event.x, event.y)
+                    if _g.state == STATE_WAITING_WORD:
+                        draw_waiting_for_word()
                 elif what == MUSIC_END:
-                    pygame.mixer.music.queue(resource_path(r"assets/music/Level 2.ogg"))
+                    pygame.mixer.music.queue(res_path(r"assets/music/Level 2.ogg"))
                 elif what == ANIMATION_END:
                     if _g.state == STATE_LOOSE_ANIMATION:
                         new_game(-1)
@@ -274,7 +315,7 @@ if __name__ == "__main__":
                             # Check si le joueur a gagné ou perdu
                             if set(_g.word.found_letters) == _g.word.letter_set:
                                 # met le message et quitte le jeu après un temps impparti si le joueur a gagné
-                                # text = FONT.render("Gagné !", True, BLACK)
+                                # text = layout.big_font.render("Gagné !", True, BLACK)
                                 # SCREEN.blit(text, (960, 540))
                                 # pygame.display.flip()
                                 _g.state = STATE_WIN_ANIMATION
@@ -282,9 +323,9 @@ if __name__ == "__main__":
                                 # pygame.time.wait(3000)
                                 # new_game(1)
                                 # pygame.event.post(pygame.event.Event(QUIT))
-                            elif _g.word.wrong_guesses == MAX_WRONG:
+                            elif _g.word.wrong_guesses == MAX_WRONG_GUESSES:
                                 # même chose mais s'l a perdu
-                                # text = FONT.render("Perdu...", True, BLACK)
+                                # text = layout.big_font.render("Perdu...", True, BLACK)
                                 # SCREEN.blit(text, (960, 540))
                                 # pygame.display.flip()
                                 _g.state = STATE_LOOSE_ANIMATION
@@ -319,7 +360,7 @@ if __name__ == "__main__":
                     SCREEN.fill(BACKGROUND_COLOR)
                     # met les images et le mot à deviner
                     draw_hangman()
-                    draw_word()
+                    draw_word(*layout.word_pos)
                     pygame.display.flip()
 
                 # Update l'écran

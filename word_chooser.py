@@ -113,7 +113,11 @@ def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
         word = words.iloc[down_range:up_range].sample(1).iloc[0]["word"]
 
         if HAS_LAROUSSE:
-            definitions = larousse.get_definitions(word)
+            try:
+                definitions = larousse.get_definitions(word)
+            except: # Handle Internet errors such as MaxRetryError
+                definitions = []
+
             if definitions:
                 return Word(word, difficulty, definitions)
         else:

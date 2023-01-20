@@ -1,6 +1,6 @@
 from path_rectifier import resource_path as res_path
 import pygame, sys, word_chooser, os
-from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT
+from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_KP_4, K_KP_6
 from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
@@ -84,6 +84,8 @@ if __name__ == "__main__":
             # self.wrong_guesses = 0 # nombre de lettres incorrectes (mis par defaut à 0)
             # self.found_letters = [] # liste des lettres correctement devinée
             # self.guessed_letters = [] # liste des lettres déjà essayées
+
+            self.dev_mode: bool = False
 
     _g = Globals()
 
@@ -205,6 +207,13 @@ if __name__ == "__main__":
         """Gère les entrées du joueur et met a jour l'état du jeu en fonction de la touche."""
         # global wrong_guesses
 
+        guess = guess.lower() # met la touche en minuscule
+
+        # Vérifie que la lettre n'as pas déjà été utilisée
+        if guess in _g.word.guessed_letters: return
+        # Vérifie que c'est un lettre non accentuée
+        if guess not in word_chooser.ALLOWED_LETTERS: return
+
         _g.word.guessed_letters.append(guess)
         if guess in _g.word.letter_set:
             # Met la lettre correcte  dans la liste found_letters
@@ -212,6 +221,14 @@ if __name__ == "__main__":
         else:
             # Ajoute 1 au nombre de lettres incorrectes et met la lettre dans la liste des déjà devinées (mais fausses)
             _g.word.wrong_guesses += 1
+
+        # Check si le joueur a gagné ou perdu
+        if set(_g.word.found_letters) == _g.word.letter_set:
+            _g.state = STATE_WIN_ANIMATION
+            pygame.time.set_timer(ANIMATION_END, 3_000)
+        elif _g.word.wrong_guesses == MAX_WRONG_GUESSES:
+            _g.state = STATE_LOOSE_ANIMATION
+            pygame.time.set_timer(ANIMATION_END, 3_000)
 
 
     def set_word(new_word: word_chooser.Word) -> None:
@@ -304,45 +321,31 @@ if __name__ == "__main__":
                         new_game(-1)
                     elif _g.state == STATE_WIN_ANIMATION:
                         new_game(1)
-                elif _g.state == STATE_PLAYING and what == KEYDOWN:
-                    key = event.unicode # Prend la touche.
+                elif what == KEYDOWN:
+                    # Shortcut to toggle the developper mode
+                    if event.key == K_KP_ENTER and event.mod & KMOD_ALT and event.mod & KMOD_CTRL and event.mod & KMOD_SHIFT:
+                        _g.dev_mode = not _g.dev_mode
+                        print("Set developper mode to", _g.dev_mode)
 
-                    if key.isalpha(): # pour etre sur que la touche soit une lettre
-                        key = key.lower() # met la touche en minuscule
+                    elif _g.dev_mode:
+                        # Fast win
+                        if event.key == K_KP_6:
+                            for letter in _g.word.letter_set:
+                                handle_input(letter)
+                        # Fast loose
+                        elif event.key == K_KP_4:
+                            for letter in word_chooser.ALLOWED_LETTERS:
+                                if not letter in _g.word.letter_set:
+                                    handle_input(letter)
 
-                        if key not in _g.word.guessed_letters and key in word_chooser.ALLOWED_LETTERS: # Vérifie que la lettre n'as pas déjà été utilisée
+
+                    if _g.state == STATE_PLAYING:
+                        key = event.unicode
+
+                        if key.isalpha(): # pour etre sur que la touche soit une lettre
                             handle_input(key)
-                            # Check si le joueur a gagné ou perdu
-                            if set(_g.word.found_letters) == _g.word.letter_set:
-                                # met le message et quitte le jeu après un temps impparti si le joueur a gagné
-                                # text = layout.big_font.render("Gagné !", True, BLACK)
-                                # SCREEN.blit(text, (960, 540))
-                                # pygame.display.flip()
-                                _g.state = STATE_WIN_ANIMATION
-                                pygame.time.set_timer(ANIMATION_END, 3_000)
-                                # pygame.time.wait(3000)
-                                # new_game(1)
-                                # pygame.event.post(pygame.event.Event(QUIT))
-                            elif _g.word.wrong_guesses == MAX_WRONG_GUESSES:
-                                # même chose mais s'l a perdu
-                                # text = layout.big_font.render("Perdu...", True, BLACK)
-                                # SCREEN.blit(text, (960, 540))
-                                # pygame.display.flip()
-                                _g.state = STATE_LOOSE_ANIMATION
-                                pygame.time.set_timer(ANIMATION_END, 3_000)
-                                # found_letters.clear()
-                                # found_letters.extend(set(word))
-                                # clear l'écran
-                                # SCREEN.fill(BACKGROUND_COLOR)
-                                # met les images et le mot à deviner
-                                # draw_hangman()
-                                # draw_word()
-                                # pygame.display.flip()
-                                # pygame.time.wait(3000)
-                                # new_game(-1)
-                                # pygame.event.post(pygame.event.Event(QUIT))
-                                #montre le mots
-                                #found_letters = list(word)
+
+
 
             # On vide les mots préchoisis si le multiprocessing est activé
             if word_chooser.connection_parent:
@@ -361,6 +364,10 @@ if __name__ == "__main__":
                     # met les images et le mot à deviner
                     draw_hangman()
                     draw_word(*layout.word_pos)
+
+                    if _g.dev_mode: # On affiche des informations supplémentaires si le mode développeur est activé
+                        SCREEN.blit(layout.small_font.render(_g.word.rich_word, True, BLACK), (0, 0))
+
                     pygame.display.flip()
 
                 # Update l'écran

@@ -62,6 +62,13 @@ if __name__ == "__main__":
         for idx in range(MAX_WRONG_GUESSES)
     ]
 
+    # Sounds
+    SOUND_GOOD = pygame.mixer.Sound(res_path(r"assets/sounds/Good.ogg"))
+    SOUND_BAD = pygame.mixer.Sound(res_path(r"assets/sounds/Bad.ogg"))
+    SOUND_DISABLED = pygame.mixer.Sound(res_path(r"assets/sounds/Disabled.ogg"))
+    SOUND_WIN = pygame.mixer.Sound(res_path(r"assets/sounds/Win.ogg"))
+    SOUND_LOOSE = pygame.mixer.Sound(res_path(r"assets/sounds/Loose.ogg"))
+
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
     ANIMATION_END = MUSIC_END + 1
@@ -203,6 +210,24 @@ if __name__ == "__main__":
         pygame.display.flip()
 
 
+    def check_win() -> bool:
+        # Vérifie si le joueur a gagné ou perdu
+        if set(_g.word.found_letters) == _g.word.letter_set:
+            _g.state = STATE_WIN_ANIMATION
+            SOUND_WIN.play()
+            pygame.time.set_timer(ANIMATION_END, 3_000)
+            return True
+        return False
+
+    def check_loose() -> bool:
+        if _g.word.wrong_guesses == MAX_WRONG_GUESSES:
+            _g.state = STATE_LOOSE_ANIMATION
+            SOUND_LOOSE.play()
+            pygame.time.set_timer(ANIMATION_END, 3_000)
+            return True
+        return False
+
+
     def handle_input(guess: str) -> None:
         """Gère les entrées du joueur et met a jour l'état du jeu en fonction de la touche."""
         # global wrong_guesses
@@ -210,7 +235,9 @@ if __name__ == "__main__":
         guess = guess.lower() # met la touche en minuscule
 
         # Vérifie que la lettre n'as pas déjà été utilisée
-        if guess in _g.word.guessed_letters: return
+        if guess in _g.word.guessed_letters:
+            SOUND_DISABLED.play()
+            return
         # Vérifie que c'est un lettre non accentuée
         if guess not in word_chooser.ALLOWED_LETTERS: return
 
@@ -218,17 +245,13 @@ if __name__ == "__main__":
         if guess in _g.word.letter_set:
             # Met la lettre correcte  dans la liste found_letters
             _g.word.found_letters.append(guess)
+            if not check_win():
+                SOUND_GOOD.play()
         else:
             # Ajoute 1 au nombre de lettres incorrectes et met la lettre dans la liste des déjà devinées (mais fausses)
             _g.word.wrong_guesses += 1
-
-        # Check si le joueur a gagné ou perdu
-        if set(_g.word.found_letters) == _g.word.letter_set:
-            _g.state = STATE_WIN_ANIMATION
-            pygame.time.set_timer(ANIMATION_END, 3_000)
-        elif _g.word.wrong_guesses == MAX_WRONG_GUESSES:
-            _g.state = STATE_LOOSE_ANIMATION
-            pygame.time.set_timer(ANIMATION_END, 3_000)
+            if not check_loose():
+                SOUND_BAD.play()
 
 
     def set_word(new_word: word_chooser.Word) -> None:
@@ -330,13 +353,12 @@ if __name__ == "__main__":
                     elif _g.dev_mode:
                         # Fast win
                         if event.key == K_KP_6:
-                            for letter in _g.word.letter_set:
-                                handle_input(letter)
+                            _g.word.found_letters = _g.word.letter_set
+                            check_win()
                         # Fast loose
                         elif event.key == K_KP_4:
-                            for letter in word_chooser.ALLOWED_LETTERS:
-                                if not letter in _g.word.letter_set:
-                                    handle_input(letter)
+                            _g.word.wrong_guesses = MAX_WRONG_GUESSES
+                            check_loose()
 
 
                     if _g.state == STATE_PLAYING:

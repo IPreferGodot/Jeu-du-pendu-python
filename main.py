@@ -1,6 +1,6 @@
 from path_rectifier import resource_path as res_path
 import pygame, sys, word_chooser, os
-from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_KP_4, K_KP_6
+from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_KP_4, K_KP_6, K_SPACE
 from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
@@ -215,7 +215,7 @@ if __name__ == "__main__":
         if set(_g.word.found_letters) == _g.word.letter_set:
             _g.state = STATE_WIN_ANIMATION
             SOUND_WIN.play()
-            pygame.time.set_timer(ANIMATION_END, 3_000)
+            pygame.time.set_timer(ANIMATION_END, 3_000, 1)
             return True
         return False
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
         if _g.word.wrong_guesses == MAX_WRONG_GUESSES:
             _g.state = STATE_LOOSE_ANIMATION
             SOUND_LOOSE.play()
-            pygame.time.set_timer(ANIMATION_END, 3_000)
+            pygame.time.set_timer(ANIMATION_END, 3_000, 1)
             return True
         return False
 
@@ -345,11 +345,21 @@ if __name__ == "__main__":
                     elif _g.state == STATE_WIN_ANIMATION:
                         new_game(1)
                 elif what == KEYDOWN:
+                    if _g.state == STATE_PLAYING:
+                        char = event.unicode
+                        if char.isalpha(): # pour etre sur que la touche soit une lettre
+                            handle_input(char)
+
+                    elif is_state(STATE_WIN_ANIMATION, STATE_LOOSE_ANIMATION) and event.key == K_SPACE:
+                        # Skip animation
+                        pygame.time.set_timer(ANIMATION_END, 1, 1)
+
                     # Shortcut to toggle the developper mode
                     if event.key == K_KP_ENTER and event.mod & KMOD_ALT and event.mod & KMOD_CTRL and event.mod & KMOD_SHIFT:
                         _g.dev_mode = not _g.dev_mode
                         print("Set developper mode to", _g.dev_mode)
 
+                    # Developper specific keybinds
                     elif _g.dev_mode:
                         # Fast win
                         if event.key == K_KP_6:
@@ -359,13 +369,6 @@ if __name__ == "__main__":
                         elif event.key == K_KP_4:
                             _g.word.wrong_guesses = MAX_WRONG_GUESSES
                             check_loose()
-
-
-                    if _g.state == STATE_PLAYING:
-                        key = event.unicode
-
-                        if key.isalpha(): # pour etre sur que la touche soit une lettre
-                            handle_input(key)
 
 
 

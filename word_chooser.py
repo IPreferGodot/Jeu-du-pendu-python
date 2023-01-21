@@ -1,5 +1,5 @@
 DEBUG = False
-SUB_PROCESS_PREFIX = " -sub- "
+SUB_PROCESS_PREFIX = "\tsub : "
 
 print("Wordchooser : Importing...", end="\r")
 import pandas
@@ -116,6 +116,7 @@ def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
             try:
                 definitions = larousse.get_definitions(word)
             except: # Handle Internet errors such as MaxRetryError
+                print("[E] Something went wrong with the larrouse. Acting like the word does not exist.")
                 definitions = []
 
             if definitions:

@@ -1,6 +1,6 @@
 from path_rectifier import resource_path as res_path
 import pygame, sys, word_chooser, os
-from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_KP_4, K_KP_6, K_SPACE
+from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_LEFT, K_RIGHT, K_DOWN, K_UP, K_SPACE
 from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
@@ -13,7 +13,6 @@ if __name__ == "__main__":
 
     print("Initializing pygame...", end="\r")
     pygame.init()
-    pygame.display.set_caption("Pendu")
     print("Initializing pygame : OK")
 
     word_chooser.init_process()
@@ -43,6 +42,7 @@ if __name__ == "__main__":
 
     # Pygame
     FRAME_TIME = int(1/60 * 1000) # In ms
+    WINDOW_TITLE = "Jeu du pendu"
 
     WINDOW_ORIGINAL_SIZE = Vector2(960, 540)
     HANGMAN_ORIGINAL_SIZE = Vector2(400, 400)
@@ -93,6 +93,7 @@ if __name__ == "__main__":
             # self.guessed_letters = [] # liste des lettres déjà essayées
 
             self.dev_mode: bool = False
+            self.forced_next_word: Word|None = None
 
     _g = Globals()
 
@@ -295,7 +296,10 @@ if __name__ == "__main__":
         # guessed_letters.clear()
         # found_letters.clear()
 
-        if word_chooser.HAS_LAROUSSE:
+        if _g.forced_next_word:
+            set_word(_g.forced_next_word)
+            _g.forced_next_word = None
+        elif word_chooser.HAS_LAROUSSE:
             # Prend le mot trouvé à l'avance
             if _g.prechoosed_words.get(_g.current_difficulty, None): # Vérifie s'il y a un mot préchoisit (ni None ni liste vide)
                 set_word(_g.prechoosed_words[_g.current_difficulty].pop())
@@ -320,6 +324,7 @@ if __name__ == "__main__":
 
         # global state
 
+        pygame.display.set_caption(WINDOW_TITLE)
         layout.update()
 
         new_game()
@@ -366,19 +371,37 @@ if __name__ == "__main__":
                     # Shortcut to toggle the developper mode
                     if event.key == K_KP_ENTER and event.mod & KMOD_ALT and event.mod & KMOD_CTRL and event.mod & KMOD_SHIFT:
                         _g.dev_mode = not _g.dev_mode
+                        pygame.display.set_caption(WINDOW_TITLE + " (Developper mode)" if _g.dev_mode else WINDOW_TITLE)
                         print("Set developper mode to", _g.dev_mode)
 
                     # Developper specific keybinds
                     elif _g.dev_mode:
                         # Fast win
-                        if event.key == K_KP_6:
-                            _g.word.found_letters = _g.word.letter_set
-                            check_win()
-                        # Fast loose
-                        elif event.key == K_KP_4:
-                            _g.word.wrong_guesses = MAX_WRONG_GUESSES
-                            check_loose()
+                        if event.key == K_RIGHT:
+                            if event.mod & KMOD_SHIFT:
+                                # Skip animation
+                                new_game(1)
+                            else:
+                                _g.word.found_letters = _g.word.letter_set
+                                check_win()
 
+                        # Fast loose
+                        elif event.key == K_LEFT:
+                            if event.mod & KMOD_SHIFT:
+                                # Skip animation
+                                new_game(-1)
+                            else:
+                                _g.word.wrong_guesses = MAX_WRONG_GUESSES
+                                check_loose()
+
+                        # Fast choose a new word of the same difficulty
+                        elif event.key == K_UP:
+                            new_game(0)
+
+                        # Manually input next_word
+                        elif event.key == K_DOWN:
+                            _g.forced_next_word = Word(input("Entrez le prochain mot que vous voulez : "), -1, ["Inputed through developper mode."])
+                            new_game(0)
 
 
             # On vide les mots préchoisis si le multiprocessing est activé

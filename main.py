@@ -142,7 +142,7 @@ if __name__ == "__main__":
             if screen_width == None:
                 screen_width, screen_height = pygame.display.get_window_size()
 
-            word_width = len(_g.word.raw_word) * BIG_FONT_WIDTH + BIG_FONT_SPACING
+            word_width = len(_g.word.raw_word if _g.state == STATE_PLAYING else _g.word.rich_word) * BIG_FONT_WIDTH + BIG_FONT_SPACING
             self.letter_scale = min(screen_width / word_width, screen_height / BIG_FONT_HEIGHT * 0.3)
             self.letter_width = BIG_FONT_WIDTH * self.letter_scale
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
             _g.state = STATE_WIN_ANIMATION
             SOUND_WIN.play()
             pygame.time.set_timer(ANIMATION_END, 3_000, 1)
-            layout.update_prerendered_word()
+            layout.update_letter()
             return True
         return False
 
@@ -232,7 +232,7 @@ if __name__ == "__main__":
             _g.state = STATE_LOOSE_ANIMATION
             SOUND_LOOSE.play()
             pygame.time.set_timer(ANIMATION_END, 3_000, 1)
-            layout.update_prerendered_word()
+            layout.update_letter()
             return True
         return False
 

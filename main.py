@@ -108,15 +108,15 @@ if __name__ == "__main__":
 
             self.hangman_pos: Vector2 = None
             self.hangman_size: Vector2 = None
-            self.hangman_images: list[pygame.Surface] = []
+            self.hangman_images: list[pygame.Surface] = None
 
             self.big_font: pygame.font.Font = None
             self.small_font: pygame.font.Font = None
             self.letter_width: float = None
             self.word_pos: pygame.math.Vector2 = None
 
-            self.unknown_letter: pygame.Surface
-            # self.letters: list[pygame.Surface] = None
+            self.unknown_letter: pygame.Surface = None
+            self.letters: list[pygame.Surface] = None
 
             self.update()
 
@@ -152,7 +152,22 @@ if __name__ == "__main__":
 
             self.big_font = pygame.font.Font(FONT_PATH, int(BIG_FONT_ORIGINAL_SIZE * self.letter_scale))
             self.small_font = pygame.font.Font(FONT_PATH, int(SMALL_FONT_ORIGINAL_SIZE * self.scale))
+
             self.unknown_letter = self.big_font.render("_", True, BLACK)
+            self.update_prerendered_word()
+
+
+        def update_prerendered_word(self) -> None:
+            """Update the word with the right colors and underscores."""
+            self.letters = []
+            for letter in _g.word.raw_word if _g.state == STATE_PLAYING else _g.word.rich_word:
+                found = _g.word.is_letter_found(letter)
+                self.letters.append(
+                    self.big_font.render(
+                        letter, True, GREEN if _g.state == STATE_WIN_ANIMATION else BLACK if found or _g.state == STATE_PLAYING else RED
+                    ) if found or _g.state == STATE_LOOSE_ANIMATION
+                    else self.unknown_letter
+                )
 
     layout = Layout()
 
@@ -183,22 +198,13 @@ if __name__ == "__main__":
         SCREEN.blit(layout.hangman_images[min(_g.word.wrong_guesses, MAX_WRONG_GUESSES - 1)], layout.hangman_pos)
 
 
-    # SIZE REDUCED
-    # def draw_word(x: int = 960,  y: int = 240) -> None:
-    def draw_word(x: int = 72,  y: int = 120) -> None:
+    def draw_word(x: int|None = None,  y: int|None = None) -> None:
         """Dessine le mot à deviner sur l'écran, avec les lettres correctes montrées et celles incorrectes transformées en "_"."""
-        for letter in _g.word.raw_word:
-            found = letter in _g.word.found_letters
+        if x == None:
+            x, y = layout.word_pos
 
-            text = layout.big_font.render(
-                # Déssine un "_" si la lettre n'as pas été devinée
-                letter if found or _g.state == STATE_LOOSE_ANIMATION else "_",
-                True,
-                GREEN if _g.state == STATE_WIN_ANIMATION else BLACK if found or _g.state == STATE_PLAYING else RED
-                # ,(x%255, x*2%255, x*3%255)
-            )
-
-            SCREEN.blit(text, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10*layout.letter_scale))
+        for letter_surface in layout.letters:
+            SCREEN.blit(letter_surface, (x, y + cos((pygame.time.get_ticks() + x*3)/500)*10*layout.letter_scale))
             x += layout.letter_width
 
 
@@ -216,6 +222,7 @@ if __name__ == "__main__":
             _g.state = STATE_WIN_ANIMATION
             SOUND_WIN.play()
             pygame.time.set_timer(ANIMATION_END, 3_000, 1)
+            layout.update_prerendered_word()
             return True
         return False
 
@@ -224,6 +231,7 @@ if __name__ == "__main__":
             _g.state = STATE_LOOSE_ANIMATION
             SOUND_LOOSE.play()
             pygame.time.set_timer(ANIMATION_END, 3_000, 1)
+            layout.update_prerendered_word()
             return True
         return False
 
@@ -247,6 +255,8 @@ if __name__ == "__main__":
             _g.word.found_letters.append(guess)
             if not check_win():
                 SOUND_GOOD.play()
+
+            layout.update_prerendered_word()
         else:
             # Ajoute 1 au nombre de lettres incorrectes et met la lettre dans la liste des déjà devinées (mais fausses)
             _g.word.wrong_guesses += 1
@@ -257,6 +267,7 @@ if __name__ == "__main__":
     def set_word(new_word: word_chooser.Word) -> None:
         """Change les variables globales lorsqu'un nouveau mot est choisi."""
         # global word, definitions
+        _g.state = STATE_PLAYING
 
         _g.word_history.append(new_word)
         _g.word = new_word
@@ -302,8 +313,6 @@ if __name__ == "__main__":
                 word_chooser.get_word_async(loose_difficulty)
         else:
             set_word(word_chooser.get_word(_g.current_difficulty))
-
-        _g.state = STATE_PLAYING
 
 
     def main() -> None:

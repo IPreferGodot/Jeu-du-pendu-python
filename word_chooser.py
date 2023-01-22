@@ -77,6 +77,18 @@ class Word():
         self.found_letters = [] # Liste des lettres correctement devinée
         self.guessed_letters = [] # Liste des lettres déjà essayées
 
+    def is_letter_found(self, letter: str) -> bool:
+        if letter in LETTER_CORRESPONDANCE:
+            return self.is_rich_letter_found(letter)
+        else:
+            return letter in self.found_letters
+
+    def is_rich_letter_found(self, letter: str) -> bool:
+        for sub_letter in LETTER_CORRESPONDANCE[letter]:
+            if sub_letter not in self.found_letters:
+                return False
+        return True
+
     def __str__(self) -> str:
         return self.raw_word
 

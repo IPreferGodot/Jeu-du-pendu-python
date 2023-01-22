@@ -2,4 +2,4 @@
 
 Ceci est un projet scolaire réalisé en binôme.
 
-Pour exporter en .exe, utiliser la commande `pyinstaller --onefile main.py --add-data 'assets/;assets'`
+Pour exporter en .exe, utiliser la commande `pyinstaller --onefile --windowed main.py --name Pendu --add-data 'assets/;assets'`

@@ -369,13 +369,13 @@ if __name__ == "__main__":
                         new_game(-1)
                     elif _g.state == STATE_WIN_ANIMATION:
                         new_game(1)
-                elif what == KEYDOWN:
+                elif what == TEXTINPUT:
                     if _g.state == STATE_PLAYING:
-                        char = event.unicode
-                        if char.isalpha(): # pour etre sur que la touche soit une lettre
-                            handle_input(char)
-
-                    elif is_state(STATE_WIN_ANIMATION, STATE_LOOSE_ANIMATION) and event.key == K_SPACE:
+                        char = event.text
+                        #if char.isalpha(): # pour etre sur que la touche soit une lettre
+                        handle_input(char)
+                elif what ==KEYDOWN:
+                    if is_state(STATE_WIN_ANIMATION, STATE_LOOSE_ANIMATION) and event.key == K_SPACE:
                         # Skip animation
                         pygame.time.set_timer(ANIMATION_END, 1, 1)
 

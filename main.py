@@ -46,6 +46,7 @@ if __name__ == "__main__":
 
     WINDOW_ORIGINAL_SIZE = Vector2(960, 540)
     HANGMAN_ORIGINAL_SIZE = Vector2(400, 400)
+    HEART_ORIGINAL_SIZE = Vector2(50,50)
 
     BIG_FONT_ORIGINAL_SIZE = 100
     SMALL_FONT_ORIGINAL_SIZE = 20
@@ -58,6 +59,14 @@ if __name__ == "__main__":
         pygame.transform.scale(
             pygame.image.load(res_path(f"assets/img/sprites/hangman/hangman{idx}.png")),
             HANGMAN_ORIGINAL_SIZE
+        )
+        for idx in range(MAX_WRONG_GUESSES)
+    ]
+    HEART: list[pygame.Surface] = [
+        pygame.transform.scale(
+            pygame.,
+            HANGMAN_ORIGINAL_SIZE
+
         )
         for idx in range(MAX_WRONG_GUESSES)
     ]
@@ -139,6 +148,7 @@ if __name__ == "__main__":
             ]
 
 
+
         def update_letter(self, screen_width: int = None, screen_height: int = None) -> None:
             if screen_width == None:
                 screen_width, screen_height = pygame.display.get_window_size()
@@ -198,6 +208,8 @@ if __name__ == "__main__":
     def draw_hangman() -> None:
         """Aplique les images par rapport au nombre d'erreurs."""
         SCREEN.blit(layout.hangman_images[min(_g.word.wrong_guesses, MAX_WRONG_GUESSES - 1)], layout.hangman_pos)
+        SCREEN.blit(layout.
+        #♥♥♥♥♥♥♥
 
 
     def draw_word(x: int|None = None,  y: int|None = None) -> None:

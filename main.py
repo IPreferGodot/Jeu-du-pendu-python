@@ -428,7 +428,7 @@ if __name__ == "__main__":
                     draw_word(*layout.word_pos)
 
                     if _g.dev_mode: # On affiche des informations supplémentaires si le mode développeur est activé
-                        SCREEN.blit(layout.small_font.render(_g.word.rich_word, True, BLACK), (0, 0))
+                        SCREEN.blit(layout.small_font.render(_g.word.rich_word, True, BLACK), (7*layout.scale, 0))
 
                     pygame.display.flip()
 

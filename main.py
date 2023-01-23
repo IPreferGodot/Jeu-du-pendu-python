@@ -48,8 +48,9 @@ if __name__ == "__main__":
     HANGMAN_ORIGINAL_SIZE = Vector2(400, 400)
 
     BIG_FONT_ORIGINAL_SIZE = 100
-    SMALL_FONT_ORIGINAL_SIZE = 20
+    SMALL_FONT_ORIGINAL_SIZE = 30
     BIG_FONT_SPACING = 10
+    # /!\ BIG font height/width already contains spacements inside, but SMALL does not.
     BIG_FONT_WIDTH, BIG_FONT_HEIGHT = Vector2(BIG_FONT_SPACING, BIG_FONT_SPACING*2) + pygame.font.Font(FONT_PATH, BIG_FONT_ORIGINAL_SIZE).size("a")
     SMALL_FONT_WIDTH, SMALL_FONT_HEIGHT = pygame.font.Font(FONT_PATH, SMALL_FONT_ORIGINAL_SIZE).size("a")
 
@@ -141,7 +142,7 @@ if __name__ == "__main__":
                 for original_surface in HANGMAN_ORIGINAL_IMAGES
             ]
 
-            self.wrong_letters_pos = Vector2(7*self.scale, screen_height - SMALL_FONT_HEIGHT*self.scale)
+            self.wrong_letters_pos = Vector2(17*self.scale, screen_height - (SMALL_FONT_HEIGHT + 10)*self.scale)
 
 
         def update_letter(self, screen_width: int = None, screen_height: int = None) -> None:
@@ -216,7 +217,7 @@ if __name__ == "__main__":
 
 
     def draw_wrong_letters() -> None:
-        SCREEN.blit(layout.small_font.render(str(_g.word.wrong_letters), True, RED), layout.wrong_letters_pos)
+        SCREEN.blit(layout.small_font.render(",".join(_g.word.wrong_letters), True, RED), layout.wrong_letters_pos)
 
 
     def draw_waiting_for_word() -> None:

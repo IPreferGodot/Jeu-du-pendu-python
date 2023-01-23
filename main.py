@@ -300,6 +300,8 @@ if __name__ == "__main__":
             set_word(_g.forced_next_word)
             _g.forced_next_word = None
         elif word_chooser.HAS_LAROUSSE:
+            word_chooser.clear_queue() # Donne la prorité aux mots dont on a besoin maintenant plutôt que ceux dont on avait besoin.
+
             # Prend le mot trouvé à l'avance
             if _g.prechoosed_words.get(_g.current_difficulty, None): # Vérifie s'il y a un mot préchoisit (ni None ni liste vide)
                 set_word(_g.prechoosed_words[_g.current_difficulty].pop())
@@ -315,6 +317,9 @@ if __name__ == "__main__":
                 word_chooser.get_word_async(win_difficulty)
             if not _g.prechoosed_words.get(loose_difficulty, None):
                 word_chooser.get_word_async(loose_difficulty)
+
+            # Il y a plus de chance de revenir à cette difficulté que de faire 2 victoires/2 défaites.
+            word_chooser.get_word_async(_g.current_difficulty)
         else:
             set_word(word_chooser.get_word(_g.current_difficulty))
 

@@ -192,6 +192,15 @@ def get_word_async(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) ->
     connection_parent.send(WordRequest(difficulty, max_attempts))
 
 
+def clear_queue():
+    """Efface la liste des mots demandés au processus distant."""
+    if not process:
+        print("`clear_queue()` is useless, there is no subprocess.")
+        return
+
+    connection_parent.send("clear")
+
+
 def terminate() -> None:
     if not process:
         print("`terminate()` is unnecessary as no process has been created.")

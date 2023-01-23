@@ -51,6 +51,7 @@ if __name__ == "__main__":
     SMALL_FONT_ORIGINAL_SIZE = 20
     BIG_FONT_SPACING = 10
     BIG_FONT_WIDTH, BIG_FONT_HEIGHT = Vector2(BIG_FONT_SPACING, BIG_FONT_SPACING*2) + pygame.font.Font(FONT_PATH, BIG_FONT_ORIGINAL_SIZE).size("a")
+    SMALL_FONT_WIDTH, SMALL_FONT_HEIGHT = pygame.font.Font(FONT_PATH, SMALL_FONT_ORIGINAL_SIZE).size("a")
 
     SCREEN = pygame.display.set_mode(WINDOW_ORIGINAL_SIZE, pygame.RESIZABLE)
 
@@ -120,6 +121,8 @@ if __name__ == "__main__":
             self.unknown_letter: pygame.Surface = None
             self.letters: list[pygame.Surface] = None
 
+            self.wrong_letters_pos: Vector2 = None
+
             self.update()
 
 
@@ -137,6 +140,8 @@ if __name__ == "__main__":
                 pygame.transform.scale(original_surface, self.hangman_size)
                 for original_surface in HANGMAN_ORIGINAL_IMAGES
             ]
+
+            self.wrong_letters_pos = Vector2(7*self.scale, screen_height - SMALL_FONT_HEIGHT*self.scale)
 
 
         def update_letter(self, screen_width: int = None, screen_height: int = None) -> None:
@@ -210,6 +215,10 @@ if __name__ == "__main__":
             x += layout.letter_width
 
 
+    def draw_wrong_letters() -> None:
+        SCREEN.blit(layout.small_font.render(str(_g.word.wrong_letters), True, RED), layout.wrong_letters_pos)
+
+
     def draw_waiting_for_word() -> None:
         SCREEN.fill(WHITE)
         msg = layout.small_font.render("En attente d'un mot...", True, BLACK)
@@ -266,6 +275,7 @@ if __name__ == "__main__":
         else:
             # Ajoute 1 au nombre de lettres incorrectes et met la lettre dans la liste des déjà devinées (mais fausses)
             _g.word.wrong_guesses += 1
+            _g.word.wrong_letters.append(guess)
             if not check_loose():
                 if not IN_CODESPACE:
                     SOUND_BAD.play()
@@ -432,6 +442,8 @@ if __name__ == "__main__":
                     # met les images et le mot à deviner
                     draw_hangman()
                     draw_word(*layout.word_pos)
+
+                    draw_wrong_letters()
 
                     if _g.dev_mode: # On affiche des informations supplémentaires si le mode développeur est activé
                         SCREEN.blit(layout.small_font.render(_g.word.rich_word, True, BLACK), (7*layout.scale, 0))

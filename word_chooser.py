@@ -75,6 +75,7 @@ class Word():
 
         self.wrong_guesses = 0 # Nombre de lettres incorrectes (mis par defaut à 0)
         self.found_letters = [] # Liste des lettres correctement devinée
+        self.wrong_letters = [] # Liste des lettres correctement devinée
         self.guessed_letters = [] # Liste des lettres déjà essayées
 
     def is_letter_found(self, letter: str) -> bool:

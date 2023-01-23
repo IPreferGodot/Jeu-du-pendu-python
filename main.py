@@ -63,11 +63,12 @@ if __name__ == "__main__":
     ]
 
     # Sounds
-    SOUND_GOOD = pygame.mixer.Sound(res_path(r"assets/sounds/Good.ogg"))
-    SOUND_BAD = pygame.mixer.Sound(res_path(r"assets/sounds/Bad.ogg"))
-    SOUND_DISABLED = pygame.mixer.Sound(res_path(r"assets/sounds/Disabled.ogg"))
-    SOUND_WIN = pygame.mixer.Sound(res_path(r"assets/sounds/Win.ogg"))
-    SOUND_LOOSE = pygame.mixer.Sound(res_path(r"assets/sounds/Loose.ogg"))
+    if not IN_CODESPACE:
+        SOUND_GOOD = pygame.mixer.Sound(res_path(r"assets/sounds/Good.ogg"))
+        SOUND_BAD = pygame.mixer.Sound(res_path(r"assets/sounds/Bad.ogg"))
+        SOUND_DISABLED = pygame.mixer.Sound(res_path(r"assets/sounds/Disabled.ogg"))
+        SOUND_WIN = pygame.mixer.Sound(res_path(r"assets/sounds/Win.ogg"))
+        SOUND_LOOSE = pygame.mixer.Sound(res_path(r"assets/sounds/Loose.ogg"))
 
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
@@ -221,7 +222,8 @@ if __name__ == "__main__":
         # Vérifie si le joueur a gagné ou perdu
         if set(_g.word.found_letters) == _g.word.letter_set:
             _g.state = STATE_WIN_ANIMATION
-            SOUND_WIN.play()
+            if not IN_CODESPACE:
+                SOUND_WIN.play()
             pygame.time.set_timer(ANIMATION_END, 3_000, 1)
             layout.update_letter()
             return True
@@ -230,7 +232,8 @@ if __name__ == "__main__":
     def check_loose() -> bool:
         if _g.word.wrong_guesses == MAX_WRONG_GUESSES:
             _g.state = STATE_LOOSE_ANIMATION
-            SOUND_LOOSE.play()
+            if not IN_CODESPACE:
+                SOUND_LOOSE.play()
             pygame.time.set_timer(ANIMATION_END, 3_000, 1)
             layout.update_letter()
             return True
@@ -245,7 +248,8 @@ if __name__ == "__main__":
 
         # Vérifie que la lettre n'as pas déjà été utilisée
         if guess in _g.word.guessed_letters:
-            SOUND_DISABLED.play()
+            if not IN_CODESPACE:
+                SOUND_DISABLED.play()
             return
         # Vérifie que c'est un lettre non accentuée
         if guess not in word_chooser.ALLOWED_LETTERS: return
@@ -255,14 +259,16 @@ if __name__ == "__main__":
             # Met la lettre correcte  dans la liste found_letters
             _g.word.found_letters.append(guess)
             if not check_win():
-                SOUND_GOOD.play()
+                if not IN_CODESPACE:
+                    SOUND_GOOD.play()
 
             layout.update_prerendered_word()
         else:
             # Ajoute 1 au nombre de lettres incorrectes et met la lettre dans la liste des déjà devinées (mais fausses)
             _g.word.wrong_guesses += 1
             if not check_loose():
-                SOUND_BAD.play()
+                if not IN_CODESPACE:
+                    SOUND_BAD.play()
 
 
     def set_word(new_word: word_chooser.Word) -> None:

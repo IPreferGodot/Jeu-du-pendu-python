@@ -1,6 +1,6 @@
 from path_rectifier import resource_path as res_path
 import pygame, sys, word_chooser, os
-from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_LEFT, K_RIGHT, K_DOWN, K_UP, K_SPACE
+from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_LEFT, K_RIGHT, K_DOWN, K_UP, K_SPACE, K_BACKSPACE, K_RETURN
 from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
@@ -37,6 +37,7 @@ if __name__ == "__main__":
     STATE_TRANSITION = 3 # Unused
     STATE_WIN_ANIMATION = 4
     STATE_LOOSE_ANIMATION = 5
+    STATE_DEV_CHOOSE_WORD = 6
 
     # Path
     FONT_PATH = res_path(r"assets\fonts\DotGothic16-Regular.ttf")
@@ -393,7 +394,10 @@ if __name__ == "__main__":
                         char = event.text
                         #if char.isalpha(): # pour etre sur que la touche soit une lettre
                         handle_input(char)
-                elif what ==KEYDOWN:
+                    elif _g.state == STATE_DEV_CHOOSE_WORD:
+                        _g.forced_next_word = Word(_g.forced_next_word.rich_word + event.text, -1, ["Inputed through developper mode."])
+                        print(event)
+                elif what == KEYDOWN:
                     if is_state(STATE_WIN_ANIMATION, STATE_LOOSE_ANIMATION) and event.key == K_SPACE:
                         # Skip animation
                         pygame.time.set_timer(ANIMATION_END, 1, 1)
@@ -425,13 +429,19 @@ if __name__ == "__main__":
                                 check_loose()
 
                         # Fast choose a new word of the same difficulty
-                        elif event.key == K_UP:
+                        elif event.key == K_UP or event.key == K_RETURN:
                             new_game(0)
 
                         # Manually input next_word
                         elif event.key == K_DOWN:
-                            _g.forced_next_word = Word(input("Entrez le prochain mot que vous voulez : "), -1, ["Inputed through developper mode."])
-                            new_game(0)
+                            if _g.state == STATE_DEV_CHOOSE_WORD:
+                                new_game(0)
+                            else:
+                                _g.forced_next_word = Word("", -1, ["Inputed through developper mode."])
+                                _g.state = STATE_DEV_CHOOSE_WORD
+
+                        elif event.key == K_BACKSPACE and _g.state == STATE_DEV_CHOOSE_WORD:
+                            _g.forced_next_word = Word(_g.forced_next_word.rich_word[:-1], -1, ["Inputed through developper mode."])
 
 
             # On vide les mots préchoisis si le multiprocessing est activé
@@ -458,6 +468,10 @@ if __name__ == "__main__":
                     if _g.dev_mode: # On affiche des informations supplémentaires si le mode développeur est activé
                         SCREEN.blit(layout.small_font.render(_g.word.rich_word, True, BLACK), (7*layout.scale, 0))
 
+                    pygame.display.flip()
+                elif _g.state == STATE_DEV_CHOOSE_WORD:
+                    SCREEN.fill(BACKGROUND_COLOR)
+                    SCREEN.blit(layout.small_font.render("Prochain mot : " + _g.forced_next_word.rich_word, True, BLACK), (7*layout.scale, 0))
                     pygame.display.flip()
 
                 # Update l'écran

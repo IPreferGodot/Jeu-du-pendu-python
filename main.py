@@ -379,6 +379,7 @@ if __name__ == "__main__":
                 pygame.mixer.music.load(music)
 
         next_frame: int = pygame.time.get_ticks() - 1
+        had_latency: bool = False # Permet de n'afficher les chutes de FPS que s'il y a au moins 2 retards d'affilé. (ex : Déplacer la fenêtre gelait le programme, et affichait donc à chaque fois une chute de FPS)
 
         print("\n======================= Main loop start =======================\n")
         while True:
@@ -468,8 +469,13 @@ if __name__ == "__main__":
 
             # Mise à jour de la fenêtre
             if pygame.time.get_ticks() >= next_frame:
-                if pygame.time.get_ticks() - next_frame > FRAME_TIME:
-                    print("latency :", pygame.time.get_ticks() - next_frame)
+                if pygame.time.get_ticks() - next_frame > 1:
+                    if had_latency:
+                        print("latency :", pygame.time.get_ticks() - next_frame)
+                    else:
+                        had_latency = True
+                else:
+                    had_latency = False
                 next_frame = pygame.time.get_ticks() + FRAME_TIME
 
                 if is_state(STATE_PLAYING, STATE_WIN_ANIMATION, STATE_LOOSE_ANIMATION):

@@ -29,6 +29,7 @@ if __name__ == "__main__":
     # game
     MAX_WRONG_GUESSES = 7
     DIFFICULTY_CHANGE = 1000
+    DIFFICULTY_LABEL = "Difficulté : "
 
     # states
     STATE_PLAYING = 1
@@ -123,6 +124,7 @@ if __name__ == "__main__":
             self.letters: list[pygame.Surface] = None
 
             self.wrong_letters_pos: Vector2 = None
+            self.difficulty_pos: Vector2 = None
 
             self.update()
 
@@ -143,6 +145,7 @@ if __name__ == "__main__":
             ]
 
             self.wrong_letters_pos = Vector2(17*self.scale, screen_height - (SMALL_FONT_HEIGHT + 10)*self.scale)
+            self.difficulty_pos = Vector2(screen_width - SMALL_FONT_WIDTH * len(DIFFICULTY_LABEL), screen_height - (SMALL_FONT_HEIGHT + 10)*self.scale)
 
 
         def update_letter(self, screen_width: int = None, screen_height: int = None) -> None:
@@ -218,6 +221,11 @@ if __name__ == "__main__":
 
     def draw_wrong_letters() -> None:
         SCREEN.blit(layout.small_font.render(",".join(_g.word.wrong_letters), True, RED), layout.wrong_letters_pos)
+
+
+    def draw_difficulty() -> None:
+        shown_difficulty = str(int(_g.current_difficulty/DIFFICULTY_CHANGE))
+        SCREEN.blit(layout.small_font.render(DIFFICULTY_LABEL + shown_difficulty, True, BLACK), layout.difficulty_pos - (SMALL_FONT_WIDTH * len(shown_difficulty), 0))
 
 
     def draw_waiting_for_word() -> None:
@@ -445,6 +453,7 @@ if __name__ == "__main__":
                     draw_word(*layout.word_pos)
 
                     draw_wrong_letters()
+                    draw_difficulty()
 
                     if _g.dev_mode: # On affiche des informations supplémentaires si le mode développeur est activé
                         SCREEN.blit(layout.small_font.render(_g.word.rich_word, True, BLACK), (7*layout.scale, 0))

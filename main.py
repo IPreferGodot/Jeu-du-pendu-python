@@ -73,6 +73,12 @@ if __name__ == "__main__":
         SOUND_WIN = pygame.mixer.Sound(res_path(r"assets/sounds/Win.ogg"))
         SOUND_LOOSE = pygame.mixer.Sound(res_path(r"assets/sounds/Loose.ogg"))
 
+        MUSICS = [res_path(f"assets/music/Level {i}.ogg") for i in range(1, 4)]
+        MUSIC_TRANSITIONS: dict[tuple[int, int], str] = {
+            (0, 1): res_path(f"assets/music/Transition 1-2.ogg"),
+            (1, 2): res_path(f"assets/music/Transition 2-3.ogg"),
+        }
+
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
     ANIMATION_END = MUSIC_END + 1
@@ -95,6 +101,8 @@ if __name__ == "__main__":
             # self.wrong_guesses = 0 # nombre de lettres incorrectes (mis par defaut à 0)
             # self.found_letters = [] # liste des lettres correctement devinée
             # self.guessed_letters = [] # liste des lettres déjà essayées
+
+            self.music: int = 0
 
             self.dev_mode: bool = False
             self.forced_next_word: Word|None = None
@@ -360,12 +368,15 @@ if __name__ == "__main__":
         new_game()
 
         if not IN_CODESPACE:
-            # Brouillon musique adaptative
-            pygame.mixer.music.load(res_path(r"assets/music/Level 1.ogg"))
-            pygame.mixer.music.set_endevent(MUSIC_END)
-            pygame.mixer.music.play()
-            pygame.mixer.music.queue(res_path(r"assets/music/Transition 1-2.ogg"))
             pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.set_endevent(MUSIC_END)
+            pygame.time.set_timer(MUSIC_END, 1, 1)
+
+            # Précharge les musiques pour éviter un courte coupure lorsqu'on les joue pour la première fois.
+            for music in MUSICS:
+                pygame.mixer.music.load(music)
+            for music in MUSIC_TRANSITIONS.values():
+                pygame.mixer.music.load(music)
 
         next_frame: int = pygame.time.get_ticks() - 1
 
@@ -382,7 +393,14 @@ if __name__ == "__main__":
                     if _g.state == STATE_WAITING_WORD:
                         draw_waiting_for_word()
                 elif what == MUSIC_END:
-                    pygame.mixer.music.queue(res_path(r"assets/music/Level 2.ogg"))
+                    new_music = min(2, _g.word.wrong_guesses // 2) # On choisit la musique (max 3eme) en fonction de la "vie" restante
+                    if new_music == _g.music:
+                        pygame.mixer.music.load(MUSICS[new_music])
+                    else:
+                        # If it exist, load a transition, else directly play the new music
+                        pygame.mixer.music.load(MUSIC_TRANSITIONS.get((_g.music, new_music), MUSICS[new_music]))
+                        _g.music = new_music
+                    pygame.mixer.music.play()
                 elif what == ANIMATION_END:
                     if _g.state == STATE_LOOSE_ANIMATION:
                         new_game(-1)

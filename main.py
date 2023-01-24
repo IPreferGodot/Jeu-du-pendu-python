@@ -153,7 +153,7 @@ if __name__ == "__main__":
             ]
 
             self.wrong_letters_pos = Vector2(17*self.scale, screen_height - (SMALL_FONT_HEIGHT + 10)*self.scale)
-            self.difficulty_pos = Vector2(screen_width - SMALL_FONT_WIDTH * len(DIFFICULTY_LABEL), screen_height - (SMALL_FONT_HEIGHT + 10)*self.scale)
+            self.difficulty_pos = Vector2(screen_width - SMALL_FONT_WIDTH * len(DIFFICULTY_LABEL) * self.scale, screen_height - (SMALL_FONT_HEIGHT + 10)*self.scale)
 
 
         def update_letter(self, screen_width: int = None, screen_height: int = None) -> None:
@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
     def draw_difficulty() -> None:
         shown_difficulty = str(int(_g.current_difficulty/DIFFICULTY_CHANGE))
-        SCREEN.blit(layout.small_font.render(DIFFICULTY_LABEL + shown_difficulty, True, BLACK), layout.difficulty_pos - (SMALL_FONT_WIDTH * len(shown_difficulty), 0))
+        SCREEN.blit(layout.small_font.render(DIFFICULTY_LABEL + shown_difficulty, True, BLACK), layout.difficulty_pos - (SMALL_FONT_WIDTH * len(shown_difficulty) * layout.scale, 0))
 
 
     def draw_waiting_for_word() -> None:

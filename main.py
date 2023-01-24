@@ -20,11 +20,10 @@ if __name__ == "__main__":
 
     # ----------------- Constants ------------------
     # colors
-    BACKGROUND_COLOR = (248, 248, 255)
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    RED = (255, 0, 0)
-    GREEN = (0, 255, 0)
+    BACKGROUND_COLOR = (203, 219, 252)
+    BLACK = (34, 32, 52)
+    RED = (142, 0, 24)
+    GREEN = (72, 142, 58)
 
     # game
     MAX_WRONG_GUESSES = 7
@@ -230,7 +229,7 @@ if __name__ == "__main__":
 
 
     def draw_waiting_for_word() -> None:
-        SCREEN.fill(WHITE)
+        SCREEN.fill(BACKGROUND_COLOR)
         msg = layout.small_font.render("En attente d'un mot...", True, BLACK)
         # SCREEN.blit(msg, vec_minus(SCREEN.get_rect().center, msg.get_rect().center))
         SCREEN.blit(msg, msg.get_rect(center=SCREEN.get_rect().center).topleft)

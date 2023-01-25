@@ -1,5 +1,7 @@
-# data
-raw_data/
+# raw data
+computed_words.csv
+*.ods
+*.xlsx
 
 # other
 draft.py

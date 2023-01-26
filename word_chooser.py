@@ -158,6 +158,9 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
 
     print("Started main loop")
     while True:
+        if not multiprocessing.parent_process().is_alive():
+            print("[E] The parent process is dead, closing.")
+            return
         connection.poll(None) # Wait for a message
         while connection.poll() : # Loop in case multiple messages were send.
             message = connection.recv()

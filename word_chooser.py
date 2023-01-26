@@ -161,7 +161,7 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
         if not multiprocessing.parent_process().is_alive():
             print("[E] The parent process is dead, closing.")
             return
-        connection.poll(None) # Wait for a message
+
         while connection.poll() : # Loop in case multiple messages were send.
             message = connection.recv()
             if message == "close":
@@ -175,7 +175,8 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
         if len(messages) > 3:
             print("Many unsatisfied messages :", len(messages))
 
-        while messages:
+        if messages:
+            # Only check ONE message, and not all with a loop, in order to go faster to the next connection reading and get "clear" or "close" in priority if they are sended.
             message = messages.pop(0)
             if isinstance(message, WordRequest):
                 word = get_word(message.difficulty, message.max_attempts)

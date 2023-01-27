@@ -514,3 +514,6 @@ def main() -> None:
                 SCREEN.fill(BACKGROUND_COLOR)
                 SCREEN.blit(layout.small_font.render("Prochain mot : " + _g.forced_next_word.rich_word, True, BLACK), (7*layout.scale, 0))
                 pygame.display.flip()
+
+if __name__ == "__main__":
+    main()

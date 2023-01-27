@@ -14,15 +14,9 @@ from math import cos
 
 IN_CODESPACE = os.environ.get("CODESPACES", False)
 
-
-if word_chooser.HAS_LAROUSSE:
-    word_chooser.multiprocessing.freeze_support()
-
 print("Initializing pygame...", end="\r")
 pygame.init()
 print("Initializing pygame : OK")
-
-word_chooser.init_process()
 
 
 # ----------------- Constants ------------------
@@ -516,4 +510,7 @@ def main() -> None:
                 pygame.display.flip()
 
 if __name__ == "__main__":
+    if word_chooser.HAS_LAROUSSE:
+        word_chooser.multiprocessing.freeze_support()
+    word_chooser.init_process()
     main()

@@ -74,10 +74,13 @@ if not IN_CODESPACE:
     SOUND_WIN = pygame.mixer.Sound(res_path(r"assets/sounds/Win.ogg"))
     SOUND_LOOSE = pygame.mixer.Sound(res_path(r"assets/sounds/Loose.ogg"))
 
-    MUSICS = [res_path(f"assets/music/Level {i}.ogg") for i in range(1, 4)]
+    MUSICS = [res_path(f"assets/music/Level {i}.ogg") for i in range(3)]
     MUSIC_TRANSITIONS: dict[tuple[int, int], str] = {
-        (0, 1): res_path(f"assets/music/Transition 1-2.ogg"),
-        (1, 2): res_path(f"assets/music/Transition 2-3.ogg"),
+        (0, 1): res_path(f"assets/music/Transition 0-1.ogg"),
+        (1, 2): res_path(f"assets/music/Transition 1-2.ogg"),
+        (0, 2): res_path(f"assets/music/Transition 0-2.ogg"),
+        (1, 0): res_path(f"assets/music/Transition 1-0.ogg"),
+        (2, 0): res_path(f"assets/music/Transition 2-0.ogg")
     }
 
 # ------------------- Events -------------------

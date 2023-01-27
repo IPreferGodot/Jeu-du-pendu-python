@@ -1,11 +1,19 @@
-from path_rectifier import resource_path as res_path
-import pygame, sys, word_chooser, os
-from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_LEFT, K_RIGHT, K_DOWN, K_UP, K_SPACE, K_BACKSPACE, K_RETURN
+from path_rectifier import resource_path as res_path, BUNDLED
+import sys, os, time
+
+if BUNDLED and __name__ == "__main__":
+    OUTPUT_FILE = open(os.path.join(os.path.dirname(sys.executable), f"{time.strftime(r'%d-%m-%Y %Hhs%Mm%Ss')} log.txt"), 'w', encoding="utf-8")
+    sys.stdout = OUTPUT_FILE
+    sys.stderr = OUTPUT_FILE
+
+import pygame, word_chooser
+from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_LEFT, K_RIGHT, K_DOWN, K_UP, K_SPACE, K_BACKSPACE, K_RETURN, K_F4
 from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
 
 IN_CODESPACE = os.environ.get("CODESPACES", False)
+
 
 if __name__ == "__main__":
     if word_chooser.HAS_LAROUSSE:
@@ -82,6 +90,7 @@ if __name__ == "__main__":
     # ------------------- Events -------------------
     MUSIC_END = USEREVENT + 1
     ANIMATION_END = MUSIC_END + 1
+    SAY_ALIVE = ANIMATION_END + 1
 
     # ----------------- Variables ------------------
     class Globals():
@@ -381,6 +390,8 @@ if __name__ == "__main__":
         next_frame: int = pygame.time.get_ticks() - 1
         had_latency: bool = False # Permet de n'afficher les chutes de FPS que s'il y a au moins 2 retards d'affilé. (ex : Déplacer la fenêtre gelait le programme, et affichait donc à chaque fois une chute de FPS)
 
+        pygame.time.set_timer(SAY_ALIVE, 5_000)
+
         print("\n======================= Main loop start =======================\n")
         while True:
             for event in pygame.event.get():
@@ -389,6 +400,8 @@ if __name__ == "__main__":
                     pygame.quit()
                     word_chooser.terminate()
                     sys.exit()
+                elif what == SAY_ALIVE:
+                    word_chooser.say_alive()
                 elif what == WINDOW_SIZE_CHANGED:
                     layout.update(event.x, event.y)
                     if _g.state == STATE_WAITING_WORD:
@@ -460,6 +473,12 @@ if __name__ == "__main__":
 
                         elif event.key == K_BACKSPACE and _g.state == STATE_DEV_CHOOSE_WORD:
                             _g.forced_next_word = Word(_g.forced_next_word.rich_word[:-1], -1, ["Inputed through developper mode."])
+
+                        elif event.key == K_F4:
+                            if event.mod & KMOD_SHIFT:
+                                word_chooser.crash_subprocess()
+                            else:
+                                raise Exception("Fake crash created trough dev mode.")
 
 
             # On vide les mots préchoisis si le multiprocessing est activé

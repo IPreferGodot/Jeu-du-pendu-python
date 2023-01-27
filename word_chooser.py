@@ -1,9 +1,10 @@
 DEBUG = False
 SUB_PROCESS_PREFIX = "\tsub : "
 
+
 print("Wordchooser : Importing...", end="\r")
-import pandas
-from path_rectifier import *
+from path_rectifier import resource_path as res_path, BUNDLED
+import pandas, sys, os
 print("Wordchooser : Importing : OK")
 
 
@@ -24,7 +25,7 @@ if HAS_LAROUSSE:
 
 
 print("Wordchooser : Loading words...", end="\r")
-words: pandas.DataFrame = pandas.read_csv(resource_path(r"assets/data/words.csv"))
+words: pandas.DataFrame = pandas.read_csv(res_path(r"assets/data/words.csv"))
 print("Wordchooser : Loading words : OK")
 
 WORDS_COUNT = len(words)
@@ -54,6 +55,7 @@ LETTER_CORRESPONDANCE =  {
 }
 ALLOWED_LETTERS = [chr(ascii_decimal) for ascii_decimal in range(97, 123)] # Pick all letters from a to z
 
+MAX_ALIVE_WAIT = 21 # Nombre de secondes sans nouvelles du processus parent au bout duquel on considère qu'il a crash.
 
 class Word():
     """Store a word, with some informations about it."""
@@ -147,18 +149,27 @@ def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
 def process_loop(connection: "multiprocessing.connection.Connection") -> None:
     """Start the subprocess infinite loop."""
 
-    # On remplace print() pour mieux le différencier avec celui du processus parent
-    global print
-    default_print = print
-    def print(*args, **kwargs):
-        default_print(SUB_PROCESS_PREFIX, end="")
-        default_print(*args, **kwargs)
+    import time
+
+    if BUNDLED:
+        OUTPUT_FILE = open(os.path.join(os.path.dirname(sys.executable), f"{time.strftime(r'%d-%m-%Y %Hhs%Mm%Ss')} subprocess_log.txt"), 'w', encoding="utf-8")
+        # OUTPUT_FILE = open(res_path("subprocess_log.txt"), "w", encoding="utf-8")
+        sys.stdout = OUTPUT_FILE
+        sys.stderr = OUTPUT_FILE
+    else:
+        # On remplace print() pour mieux le différencier avec celui du processus parent
+        global print
+        default_print = print
+        def print(*args, **kwargs):
+            default_print(SUB_PROCESS_PREFIX, end="")
+            default_print(*args, **kwargs)
 
     messages: list[str|WordRequest] = []
+    last_alive = time.time()
 
     print("Started main loop")
-    while True:
-        if not multiprocessing.parent_process().is_alive():
+    while True: # type: ignore
+        if not multiprocessing.parent_process().is_alive() or time.time() - last_alive > MAX_ALIVE_WAIT:
             print("[E] The parent process is dead, closing.")
             return
 
@@ -167,8 +178,12 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
             if message == "close":
                 print("Closing")
                 return
+            elif message == "fake_crash":
+                raise Exception("Fake crash of the subprocess triggered trough dev mode.")
             elif message == "clear":
                 messages.clear()
+            elif message == "alive":
+                last_alive = time.time()
             else:
                 messages.append(message)
 
@@ -186,6 +201,12 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
                 print("[W] Unknow message passed trough pipe :", message)
 
 
+def check_child_alive() -> None:
+    if not process.is_alive():
+        print("Child process is dead, restarting it.")
+        init_process()
+
+
 def get_word_async(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
     """Si larousse-api est installé, demande au programme parallèle de chercher un mot sur le larousse."""
 
@@ -193,6 +214,8 @@ def get_word_async(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) ->
         return Exception("larousse-api is not installed, use `get_word()` instead")
     if not connection_parent:
         return Exception("Initialisez d'abord le processus parallèle avec `init_process()`")
+
+    check_child_alive()
 
     connection_parent.send(WordRequest(difficulty, max_attempts))
 
@@ -204,6 +227,18 @@ def clear_queue():
         return
 
     connection_parent.send("clear")
+
+
+def say_alive() -> None:
+    """Envoie au processus enfant que le processus parent est tjrs en vie (n'as pas crash)"""
+    check_child_alive()
+    connection_parent.send("alive")
+
+
+def crash_subprocess() -> None:
+    """Envoie au processus enfant que le processus parent est tjrs en vie (n'as pas crash)"""
+    if process and process.is_alive():
+        connection_parent.send("fake_crash")
 
 
 def terminate() -> None:
@@ -233,9 +268,13 @@ def init_process() -> None:
     if not HAS_LAROUSSE:
         print("Starting a process is not necessary : larousse-api is not installed.")
         return
-    if process:
-        print("[E] Process was already created.")
+    if process and process.is_alive():
+        print("[E] Process was already created and is still alive.")
         return
+
+    if connection_parent:
+        connection_parent.close()
+        _connection_child.close()
 
     print("Initializing process...", end="\r")
 

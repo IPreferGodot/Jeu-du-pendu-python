@@ -1,7 +1,7 @@
 from path_rectifier import resource_path as res_path, BUNDLED
 import sys, os, time
 
-if BUNDLED and __name__ == "__main__":
+if BUNDLED:
     OUTPUT_FILE = open(os.path.join(os.path.dirname(sys.executable), f"{time.strftime(r'%d-%m-%Y %Hhs%Mm%Ss')} log.txt"), 'w', encoding="utf-8")
     sys.stdout = OUTPUT_FILE
     sys.stderr = OUTPUT_FILE

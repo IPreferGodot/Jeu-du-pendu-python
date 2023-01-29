@@ -40,7 +40,7 @@ STATE_LOOSE_ANIMATION = 5
 STATE_DEV_CHOOSE_WORD = 6
 
 # Path
-FONT_PATH = res_path(r"assets\fonts\DotGothic16-Regular.ttf")
+FONT_PATH = res_path(r"assets/fonts/DotGothic16-Regular.ttf")
 
 # Pygame
 FRAME_TIME = int(1/60 * 1000) # In ms
@@ -517,3 +517,6 @@ if __name__ == "__main__":
         word_chooser.multiprocessing.freeze_support()
     word_chooser.init_process()
     main()
+elif __name__ == "__mp_main__":
+    # Ferme pygame si on a lancé ce script au lieu de start.py juste pour débugger un truc
+    pygame.quit()

@@ -95,7 +95,7 @@ sorted_words.sort_values("difficulty", ascending=False, ignore_index=True, inpla
 print("sorted_words :\n", sorted_words)
 
 # On ne garder que le nécessaire et on sauvegarde en .csv
-sorted_words.drop("difficulty", axis=1).to_csv(r"raw_data\computed_words.csv", index=False)
+sorted_words.drop("difficulty", axis=1).drop("nature", axis=1).to_csv(r"raw_data\computed_words.csv", index=False)
 
 
 if __name__ == "__main__" and input("Voulez vous voir un graphique du nombre de mots en fonction de la difficulté ?\nY/N : ").lower() == "y":

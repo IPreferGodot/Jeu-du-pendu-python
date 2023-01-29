@@ -1,13 +1,11 @@
-DEBUG = False
-SUB_PROCESS_PREFIX = "\tsub : "
-
-
+# On fait les importations
 print("Wordchooser : Importing...", end="\r")
 from path_rectifier import resource_path as res_path, BUNDLED
 import pandas, sys, os
 print("Wordchooser : Importing : OK")
 
 
+# Importe le larousse s'il est présent
 HAS_LAROUSSE = False
 if "--no-larousse" in sys.argv:
     print("Running without larousse because --no-larousse passed.")
@@ -15,6 +13,7 @@ else:
     try:
         from larousse_api import larousse
         HAS_LAROUSSE = True
+        import multiprocessing, multiprocessing.connection # (import connection just for type hint, because else it doesn't work)
     except:
         print("Le module larousse-api n'est pas installé")
 
@@ -23,21 +22,21 @@ connection_parent: "None|multiprocessing.connection.Connection" = None
 _connection_child: "None|multiprocessing.connection.Connection" = None
 process: "None|multiprocessing.Process" = None
 
-if HAS_LAROUSSE:
-    import multiprocessing, multiprocessing.connection # (import connection just for type hint)
 
-
+# On charge les mots
 print("Wordchooser : Loading words...", end="\r")
 words: pandas.DataFrame = pandas.read_csv(res_path(r"assets/data/words.csv"))
 print("Wordchooser : Loading words : OK")
 
-WORDS_COUNT = len(words)
+
+WORDS_COUNT: int = len(words)
 DOWN_RANGE_MAX: int = WORDS_COUNT - 500 # Valeur maximale du bas de la plage aléatoire
-UP_RANGE_MIN: int = 500  # Valeur minimale du bas de la plage aléatoire
+UP_RANGE_MIN = 500  # Valeur minimale du bas de la plage aléatoire
 RANGE = 1000
 
 DEFAULT_MAX_ATTEMPTS = 10
 
+# Contient les correspondances non accentuées des lettres
 LETTER_CORRESPONDANCE =  {
     'é': "e",
     'â': "a",
@@ -56,9 +55,13 @@ LETTER_CORRESPONDANCE =  {
     "'": '',
     'œ': "oe"
 }
-ALLOWED_LETTERS = [chr(ascii_decimal) for ascii_decimal in range(97, 123)] # Pick all letters from a to z
+# Contient toutes les lettres dont on prend en compte leur entré par l'utilisateur (celles de A à Z)
+ALLOWED_LETTERS = [chr(ascii_decimal) for ascii_decimal in range(97, 123)]
 
-MAX_ALIVE_WAIT = 21 # Nombre de secondes sans nouvelles du processus parent au bout duquel on considère qu'il a crash.
+# Le préfix des affichages du sous-processus (Ne sert à rien de le .exe puisqu'ils sont dans un fichier différent)
+SUB_PROCESS_PREFIX = "\tsub : "
+# Nombre de secondes sans nouvelles du processus parent au bout duquel on considère qu'il a crash.
+MAX_ALIVE_WAIT = 21
 
 class Word():
     """Store a word, with some informations about it."""
@@ -84,12 +87,14 @@ class Word():
         self.guessed_letters = [] # Liste des lettres déjà essayées
 
     def is_letter_found(self, letter: str) -> bool:
+        """Renvoie si la lettre à été trouvée ou non"""
         if letter in LETTER_CORRESPONDANCE:
             return self.is_rich_letter_found(letter)
         else:
             return letter in self.found_letters
 
     def is_rich_letter_found(self, letter: str) -> bool:
+        """Renvoie si l'équivalent non accentué a été trouvé ou non"""
         for sub_letter in LETTER_CORRESPONDANCE[letter]:
             if sub_letter not in self.found_letters:
                 return False
@@ -101,9 +106,9 @@ class Word():
     def __repr__(self) -> str:
         return f"<{self.rich_word} ({self.raw_word}) {self.difficulty}>"
 
-# print(repr(Word("à l'œuf", 0)))
 
 class WordRequest():
+    """Contient des informations sur la requête de mot au processus enfant."""
     def __init__(self, difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> None:
         self.difficulty: int = difficulty
         self.max_attempts: int = max_attempts
@@ -120,11 +125,9 @@ def cap(value: int, minimum: int, maximum: int) -> int:
 def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
     """Choisit aléatoirement un mot dont l'indice est est situé entre `difficulty - word_chooser.RANGE` et `difficulty + word_chooser.RANGE`"""
 
+    # On calcule la plage où on choisit un mot
     down_range = cap(difficulty - RANGE, 0, DOWN_RANGE_MAX)
     up_range = cap(difficulty + RANGE, UP_RANGE_MIN, WORDS_COUNT)
-
-    if DEBUG:
-        print(difficulty, " → ", down_range, "-", up_range, sep="")
 
     attempts = 0
     while attempts < max_attempts:
@@ -137,7 +140,7 @@ def get_word(difficulty: int, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> str:
                 print("[E] Something went wrong with the larrouse. Acting like the word does not exist.")
                 definitions = []
 
-            if definitions:
+            if definitions: # Si un mot n'est pas dans le dictionnaire Larousse, il n'aura aucune définition
                 return Word(word, difficulty, definitions)
         else:
             return Word(word, difficulty)
@@ -155,8 +158,8 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
     import time
 
     if BUNDLED:
+        # On crée un fichier de log pour le .exe
         OUTPUT_FILE = open(os.path.join(os.path.dirname(sys.executable), f"{time.strftime(r'%d-%m-%Y %Hhs%Mm%Ss')} subprocess_log.txt"), 'w', encoding="utf-8")
-        # OUTPUT_FILE = open(res_path("subprocess_log.txt"), "w", encoding="utf-8")
         sys.stdout = OUTPUT_FILE
         sys.stderr = OUTPUT_FILE
     else:
@@ -167,44 +170,48 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
             default_print(SUB_PROCESS_PREFIX, end="")
             default_print(*args, **kwargs)
 
-    messages: list[str|WordRequest] = []
+    word_requests: list[WordRequest] = []
     last_alive = time.time()
 
     print("Started main loop")
-    while True: # type: ignore
+    while True:
         if not multiprocessing.parent_process().is_alive() or time.time() - last_alive > MAX_ALIVE_WAIT:
+            # On ferme le processus par précaution pour éviter que le proessus enfant continue de tourner en arrière plan s'il le parent meurt.
             print("[E] The parent process is dead, closing.")
             return
 
         while connection.poll() : # Loop in case multiple messages were send.
             message = connection.recv()
-            if message == "close":
-                print("Closing")
-                return
-            elif message == "fake_crash":
-                raise Exception("Fake crash of the subprocess triggered trough dev mode.")
-            elif message == "clear":
-                messages.clear()
-            elif message == "alive":
-                last_alive = time.time()
+            if type(message) == str:
+                if message == "alive":
+                    last_alive = time.time()
+                elif message == "clear":
+                    word_requests.clear()
+                elif message == "close":
+                    print("Closing")
+                    return
+                elif message == "fake_crash":
+                    raise Exception("Fake crash of the subprocess triggered trough dev mode.")
+                else:
+                    print("[W] Unknow string message :", message)
+            elif isinstance(message, WordRequest):
+                word_requests.append(message)
             else:
-                messages.append(message)
+                print("[W] Unknow message type passed trough pipe :", message)
 
-        if len(messages) > 3:
-            print("Many unsatisfied messages :", len(messages))
+        if len(word_requests) > 5:
+            print("Many unsatisfied word request :", len(word_requests))
 
-        if messages:
-            # Only check ONE message, and not all with a loop, in order to go faster to the next connection reading and get "clear" or "close" in priority if they are sended.
-            message = messages.pop(0)
-            if isinstance(message, WordRequest):
-                word = get_word(message.difficulty, message.max_attempts)
-                connection.send(word)
-                print("A word was found :", repr(word))
-            else:
-                print("[W] Unknow message passed trough pipe :", message)
+        # Only get ONE word, and not every with a loop, in order to go quicker to the next connection reading and get "clear" or "close" in priority.
+        if word_requests:
+            request = word_requests.pop(0)
+            word = get_word(request.difficulty, request.max_attempts)
+            connection.send(word)
+            print("A word was found :", repr(word))
 
 
 def check_child_alive() -> None:
+    """Redémarre le processus enfnant s'il est mort."""
     if process and not process.is_alive():
         print("Child process is dead, restarting it.")
         init_process()
@@ -228,28 +235,32 @@ def clear_queue():
     if not process:
         print("`clear_queue()` is useless, there is no subprocess.")
         return
-
     connection_parent.send("clear")
 
 
 def say_alive() -> None:
-    """Envoie au processus enfant que le processus parent est tjrs en vie (n'as pas crash)"""
+    """Envoie au processus enfant que le processus parent est toujours en vie (n'as pas crash)."""
     if process:
         check_child_alive()
         connection_parent.send("alive")
 
+
 def crash_subprocess() -> None:
-    """Envoie au processus enfant que le processus parent est tjrs en vie (n'as pas crash)"""
+    """Fait crash le processus enfant."""
     if process and process.is_alive():
         connection_parent.send("fake_crash")
 
 
 def terminate() -> None:
+    """Ferme le processus enfant, et s'il n'y arrive pas, le tue."""
+
     if not process:
         print("`terminate()` is unnecessary as no process has been created.")
         return
 
     connection_parent.send("close")
+
+    # On vérifie pendant 30s s'il arrive à se fermer tout seul, et sinon on le tue
     for _ in range(30):
         process.join(1)
         if not process.is_alive():
@@ -264,7 +275,10 @@ def terminate() -> None:
 
 
 def init_process() -> None:
-    """Call this to create the new process. This prevent the new process to create a process wich would create a process wich would etc..."""
+    """
+    Call this to create the new process.
+    /!\ Protect this with a thing like `if __name__ == "__main__"` to prevent the new process to create a process wich would create a process wich would etc...
+    """
 
     global process, connection_parent, _connection_child
 
@@ -286,21 +300,3 @@ def init_process() -> None:
     process.start()
 
     print("Initializing process : OK")
-
-
-if True and __name__ == "__main__":
-    pass
-    # for i in range(-1000, len(words) + 1001, 1000):
-    #     print(i, ":", get_word(i))
-
-    # get_word_async(0)
-    # print("i'am first")
-
-    # while word_queue.empty():
-    #     print("empty")
-
-    # print(word_queue.get())
-    # word_queue.close()
-
-    # if HAS_LAROUSSE:
-    #     init_process()

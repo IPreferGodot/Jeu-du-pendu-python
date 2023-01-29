@@ -9,11 +9,14 @@ print("Wordchooser : Importing : OK")
 
 
 HAS_LAROUSSE = False
-try:
-    from larousse_api import larousse
-    HAS_LAROUSSE = True
-except:
-    print("Le module larousse-api n'est pas installé")
+if "--no-larousse" in sys.argv:
+    print("Running without larousse because --no-larousse passed.")
+else:
+    try:
+        from larousse_api import larousse
+        HAS_LAROUSSE = True
+    except:
+        print("Le module larousse-api n'est pas installé")
 
 
 connection_parent: "None|multiprocessing.connection.Connection" = None
@@ -202,7 +205,7 @@ def process_loop(connection: "multiprocessing.connection.Connection") -> None:
 
 
 def check_child_alive() -> None:
-    if not process.is_alive():
+    if process and not process.is_alive():
         print("Child process is dead, restarting it.")
         init_process()
 
@@ -231,9 +234,9 @@ def clear_queue():
 
 def say_alive() -> None:
     """Envoie au processus enfant que le processus parent est tjrs en vie (n'as pas crash)"""
-    check_child_alive()
-    connection_parent.send("alive")
-
+    if process:
+        check_child_alive()
+        connection_parent.send("alive")
 
 def crash_subprocess() -> None:
     """Envoie au processus enfant que le processus parent est tjrs en vie (n'as pas crash)"""

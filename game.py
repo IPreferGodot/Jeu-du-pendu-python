@@ -1,18 +1,20 @@
+# Importation des modules nécessaires à la mise en place du fichier de log
 from path_rectifier import resource_path as res_path, BUNDLED
 import sys, os, time
 
 if BUNDLED:
+    # On crée un fichier de log pour le .exe
     OUTPUT_FILE = open(os.path.join(os.path.dirname(sys.executable), f"{time.strftime(r'%d-%m-%Y %Hhs%Mm%Ss')} log.txt"), 'w', encoding="utf-8")
     sys.stdout = OUTPUT_FILE
     sys.stderr = OUTPUT_FILE
 
+# Importation des autres modules
 import pygame, word_chooser
 from pygame.locals import QUIT, WINDOWSIZECHANGED as WINDOW_SIZE_CHANGED, KEYDOWN, USEREVENT, TEXTINPUT, KMOD_ALT, KMOD_CTRL, KMOD_SHIFT, K_KP_ENTER, K_LEFT, K_RIGHT, K_DOWN, K_UP, K_SPACE, K_BACKSPACE, K_RETURN, K_F4
 from pygame.math import Vector2
 from word_chooser import Word
 from math import cos
 
-IN_CODESPACE = os.environ.get("CODESPACES", False)
 
 print("Initializing pygame...", end="\r")
 pygame.init()
@@ -20,6 +22,8 @@ print("Initializing pygame : OK")
 
 
 # ----------------- Constants ------------------
+IN_CODESPACE = os.environ.get("CODESPACES", False)
+
 # colors
 BACKGROUND_COLOR = (203, 219, 252)
 BLACK = (34, 32, 52)
@@ -83,10 +87,12 @@ if not IN_CODESPACE:
         (2, 0): res_path(f"assets/music/Transition 2-0.ogg")
     }
 
+
 # ------------------- Events -------------------
 MUSIC_END = USEREVENT + 1
 ANIMATION_END = MUSIC_END + 1
 SAY_ALIVE = ANIMATION_END + 1
+
 
 # ----------------- Variables ------------------
 class Globals():
@@ -101,11 +107,7 @@ class Globals():
         self.word: Word = Word("non initialisé", 0, ["La variable `word` a été initialisée, mais aucun mot n'a été choisi."])
 
         self.prechoosed_words: dict[int, list[word_chooser.Word]] = {} # Stocke les mots obtenus en arrière plan
-        self.word_history: list[word_chooser.Word] = [] # Garde une trace des mots déjà montrés au joueur, par exemple au cas où il veuille en revoir la définition.
-
-        # self.wrong_guesses = 0 # nombre de lettres incorrectes (mis par defaut à 0)
-        # self.found_letters = [] # liste des lettres correctement devinée
-        # self.guessed_letters = [] # liste des lettres déjà essayées
+        self.word_history: list[word_chooser.Word] = [] # Garde une trace des mots déjà montrés au joueur, par exemple au cas où il veuille en revoir la définition. (N'a pas été implémenté)
 
         self.music: int = 0
 
@@ -173,7 +175,6 @@ class Layout():
         # ↓ = factorisation de ↑
         self.word_pos = Vector2(screen_width/2 - (word_width/2 - BIG_FONT_SPACING)*self.letter_scale, BIG_FONT_SPACING * self.letter_scale)
 
-
         self.big_font = pygame.font.Font(FONT_PATH, int(BIG_FONT_ORIGINAL_SIZE * self.letter_scale))
         self.small_font = pygame.font.Font(FONT_PATH, int(SMALL_FONT_ORIGINAL_SIZE * self.scale))
 
@@ -208,6 +209,7 @@ def is_state(*wanted_states: int) -> bool:
 
 
 def add_prechoosed_word(word: word_chooser.Word) -> None:
+    """Ajoute un mot à la liste des mots préchoisis par le processus enfant."""
     if word.difficulty in _g.prechoosed_words:
         _g.prechoosed_words[word.difficulty].append(word)
     else:
@@ -218,7 +220,7 @@ def add_prechoosed_word(word: word_chooser.Word) -> None:
 
 
 def draw_hangman() -> None:
-    """Aplique les images par rapport au nombre d'erreurs."""
+    """Affiche la bonne image en fonction du nombre d'erreurs."""
     SCREEN.blit(layout.hangman_images[min(_g.word.wrong_guesses, MAX_WRONG_GUESSES - 1)], layout.hangman_pos)
 
 
@@ -233,15 +235,18 @@ def draw_word(x: int|None = None,  y: int|None = None) -> None:
 
 
 def draw_wrong_letters() -> None:
+    """Affiche les lettres tentées mais qui n'étaient pas dans le mot."""
     SCREEN.blit(layout.small_font.render(",".join(_g.word.wrong_letters), True, RED), layout.wrong_letters_pos)
 
 
 def draw_difficulty() -> None:
+    """Affiche la difficulté actuelle."""
     shown_difficulty = str(int(_g.current_difficulty/DIFFICULTY_CHANGE))
     SCREEN.blit(layout.small_font.render(DIFFICULTY_LABEL + shown_difficulty, True, BLACK), layout.difficulty_pos - (SMALL_FONT_WIDTH * len(shown_difficulty) * layout.scale, 0))
 
 
 def draw_waiting_for_word() -> None:
+    """Affiche l'écran d'attente lorsqu'on attend un mot du processus enfant."""
     SCREEN.fill(BACKGROUND_COLOR)
     msg = layout.small_font.render("En attente d'un mot...", True, BLACK)
     # SCREEN.blit(msg, vec_minus(SCREEN.get_rect().center, msg.get_rect().center))
@@ -250,7 +255,7 @@ def draw_waiting_for_word() -> None:
 
 
 def check_win() -> bool:
-    # Vérifie si le joueur a gagné ou perdu
+    """Vérifie si le joueur a gagné, et agit en conséquence."""
     if set(_g.word.found_letters) == _g.word.letter_set:
         _g.state = STATE_WIN_ANIMATION
         if not IN_CODESPACE:
@@ -261,6 +266,7 @@ def check_win() -> bool:
     return False
 
 def check_loose() -> bool:
+    """Vérifie si le joueur a perdu, et agit en conséquence."""
     if _g.word.wrong_guesses == MAX_WRONG_GUESSES:
         _g.state = STATE_LOOSE_ANIMATION
         if not IN_CODESPACE:
@@ -273,7 +279,6 @@ def check_loose() -> bool:
 
 def handle_input(guess: str) -> None:
     """Gère les entrées du joueur et met a jour l'état du jeu en fonction de la touche."""
-    # global wrong_guesses
 
     guess = guess.lower() # met la touche en minuscule
 
@@ -305,7 +310,6 @@ def handle_input(guess: str) -> None:
 
 def set_word(new_word: word_chooser.Word) -> None:
     """Change les variables globales lorsqu'un nouveau mot est choisi."""
-    # global word, definitions
     _g.state = STATE_PLAYING
 
     _g.word_history.append(new_word)
@@ -326,13 +330,7 @@ def new_game(has_won: int = 0) -> None:
 
     print("Starting a new round with has_won =", has_won)
 
-    # global wrong_guesses, current_difficulty, state
-
     _g.current_difficulty += DIFFICULTY_CHANGE * has_won
-
-    # wrong_guesses = 0
-    # guessed_letters.clear()
-    # found_letters.clear()
 
     if _g.forced_next_word:
         set_word(_g.forced_next_word)
@@ -363,9 +361,10 @@ def new_game(has_won: int = 0) -> None:
 
 
 def main() -> None:
-    """Fusion des versions de Xenozk et IPreferGodot."""
-
-    # global state
+    """
+    Boucle principale du jeu.
+    Fusion des versions de Xenozk et IPreferGodot.
+    """
 
     pygame.display.set_caption(WINDOW_TITLE)
     layout.update()
@@ -418,9 +417,7 @@ def main() -> None:
                     new_game(1)
             elif what == TEXTINPUT:
                 if _g.state == STATE_PLAYING:
-                    char = event.text
-                    #if char.isalpha(): # pour etre sur que la touche soit une lettre
-                    handle_input(char)
+                    handle_input(event.text)
                 elif _g.state == STATE_DEV_CHOOSE_WORD:
                     _g.forced_next_word = Word(_g.forced_next_word.rich_word + event.text, -1, ["Inputed through developper mode."])
                     print(event)
@@ -511,6 +508,7 @@ def main() -> None:
                 SCREEN.fill(BACKGROUND_COLOR)
                 SCREEN.blit(layout.small_font.render("Prochain mot : " + _g.forced_next_word.rich_word, True, BLACK), (7*layout.scale, 0))
                 pygame.display.flip()
+
 
 if __name__ == "__main__":
     if word_chooser.HAS_LAROUSSE:
